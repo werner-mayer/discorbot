@@ -4,6 +4,7 @@ import DiscordGuildService from './DiscordGuildService.js';
 import AuditLogService from './AuditLogService.js';
 import { AuditAction } from '../models/AuditAction.js';
 import { JoinPolicy, isValidJoinPolicy } from '../models/JoinPolicy.js';
+import { isValidClanEmoji } from '../models/ClanEmojis.js';
 import { ConflictError, ValidationError } from '../utils/errors.js';
 import { normalize, truncate } from '../utils/text.js';
 import { parseColor } from '../utils/color.js';
@@ -146,6 +147,31 @@ export class GuildSettingsService {
     });
 
     return { guild: updated, changed: Object.keys(patch) };
+  }
+
+  /** Troca o emoji e propaga para cargo, categoria e canais. */
+  async setEmoji(discordGuild, guildRecord, emoji, { actorId } = {}) {
+    if (!isValidClanEmoji(emoji)) {
+      throw new ValidationError('Emoji inválido. Escolha um da lista.');
+    }
+    if (emoji === guildRecord.emoji) return guildRecord;
+
+    const updated = await this.guilds.update(guildRecord.id, { emoji });
+    await this.discord.renameStructure(discordGuild, guildRecord, {
+      name: updated.name,
+      tag: updated.tag,
+      color: updated.color,
+      emoji,
+    });
+
+    await this.audit.record({
+      discordGuildId: discordGuild.id,
+      guildId: guildRecord.id,
+      action: AuditAction.SETTINGS_UPDATED,
+      actorId,
+      metadata: { emoji: { de: guildRecord.emoji, para: emoji } },
+    });
+    return updated;
   }
 
   async setJoinPolicy(discordGuild, guildRecord, policy, { actorId } = {}) {

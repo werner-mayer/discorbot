@@ -9,6 +9,7 @@ import { ConflictError, NotFoundError } from '../utils/errors.js';
 import { normalize } from '../utils/text.js';
 import { parseColor } from '../utils/color.js';
 import { validateGuildName, validateGuildTag } from '../utils/validators.js';
+import { DEFAULT_CLAN_EMOJI, isValidClanEmoji } from '../models/ClanEmojis.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('GuildService');
@@ -34,23 +35,25 @@ export class GuildService {
 
   // ------------------------------------------------------------- validacao
 
-  /** Valida e normaliza a entrada crua do modal. Nao toca no Discord nem no banco. */
+  /**
+   * Valida e normaliza a entrada crua do modal. Nao toca no Discord nem no banco.
+   * Os nomes dos canais nao vem do usuario: sao derivados do emoji escolhido.
+   */
   validateDraft(input) {
     const name = validateGuildName(input.name);
     const tag = validateGuildTag(input.tag);
     const color = parseColor(input.color);
+    const emoji = isValidClanEmoji(input.emoji)
+      ? input.emoji
+      : this.config.guild.defaultEmoji || DEFAULT_CLAN_EMOJI;
 
-    const allowCustom = this.config.guild.allowCustomChannelNames;
     return {
       name,
       tag,
       color,
+      emoji,
       nameNormalized: normalize(name),
       tagNormalized: normalize(tag),
-      textChannelName:
-        (allowCustom && input.textChannelName?.trim()) || this.config.guild.defaultTextChannelName,
-      voiceChannelName:
-        (allowCustom && input.voiceChannelName?.trim()) || this.config.guild.defaultVoiceChannelName,
     };
   }
 
@@ -137,6 +140,7 @@ export class GuildService {
         tag: draft.tag,
         tagNormalized: draft.tagNormalized,
         color: draft.color,
+        emoji: draft.emoji,
         ownerId,
         ...structure,
         members: {
@@ -162,7 +166,7 @@ export class GuildService {
       guildId: guildRecord.id,
       action: AuditAction.GUILD_CREATED,
       actorId: ownerId,
-      metadata: { name: draft.name, tag: draft.tag, color: draft.color },
+      metadata: { name: draft.name, tag: draft.tag, color: draft.color, emoji: draft.emoji },
     });
 
     logger.info(`Clã criado: ${draft.name} [${draft.tag}] por ${ownerId}`);

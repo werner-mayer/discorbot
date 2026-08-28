@@ -46,18 +46,26 @@ export function creationPanelEmbed() {
     .setFooter({ text: 'Use /cla info para ver os dados do seu clã.' });
 }
 
-export function confirmationEmbed(draft) {
+export function confirmationEmbed(draft, previa) {
   return new EmbedBuilder()
     .setColor(colorToInt(draft.color))
-    .setTitle('Criar clã?')
+    .setTitle(`${draft.emoji} Criar clã?`)
     .addFields(
       { name: 'Nome', value: draft.name, inline: true },
       { name: 'Tag', value: `[${draft.tag}]`, inline: true },
       { name: 'Cor', value: draft.color, inline: true },
-      { name: 'Canal de texto', value: `#${draft.textChannelName}`, inline: true },
-      { name: 'Canal de voz', value: draft.voiceChannelName, inline: true },
+      {
+        name: 'Vai ser criado assim',
+        value: [
+          `**${previa.categoria}**`,
+          `├── #${previa.texto}`,
+          `└── ${previa.voz}`,
+          '',
+          `Cargo: ${draft.emoji} [${draft.tag}] ${draft.name}`,
+        ].join('\n'),
+      },
     )
-    .setFooter({ text: 'Confirme para criar o cargo, a categoria e os canais.' });
+    .setFooter({ text: 'Escolha o emoji no menu abaixo e confirme.' });
 }
 
 export function guildInfoEmbed(
@@ -68,7 +76,7 @@ export function guildInfoEmbed(
   const limite = guildRecord.memberLimit ? `/${guildRecord.memberLimit}` : '';
   const embed = new EmbedBuilder()
     .setColor(colorToInt(guildRecord.color))
-    .setTitle(`[${guildRecord.tag}] ${guildRecord.name}`)
+    .setTitle(`${guildRecord.emoji ?? ''} [${guildRecord.tag}] ${guildRecord.name}`.trim())
     .addFields(
       { name: 'Líder', value: owner, inline: true },
       { name: 'Membros', value: `${memberCount}${limite}`, inline: true },
@@ -244,8 +252,9 @@ export function auditLogEmbed(logs, { resolveGuildName } = {}) {
 export function settingsEmbed(guildRecord) {
   return new EmbedBuilder()
     .setColor(colorToInt(guildRecord.color))
-    .setTitle(`Configurações — [${guildRecord.tag}] ${guildRecord.name}`)
+    .setTitle(`Configurações — ${guildRecord.emoji ?? ''} [${guildRecord.tag}] ${guildRecord.name}`.trim())
     .addFields(
+      { name: 'Emoji', value: guildRecord.emoji ?? '—', inline: true },
       { name: 'Entrada', value: JOIN_POLICY_LABEL[guildRecord.joinPolicy] ?? '—', inline: true },
       { name: 'Limite de membros', value: guildRecord.memberLimit ? String(guildRecord.memberLimit) : 'sem limite', inline: true },
       { name: 'Descrição', value: guildRecord.description || '_não definida_' },

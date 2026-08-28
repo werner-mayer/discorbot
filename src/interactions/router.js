@@ -9,6 +9,7 @@ import { acceptWarButton, declineWarButton } from './buttons/warButtons.js';
 import createGuildModal from './modals/createGuildModal.js';
 import editGuildModal from './modals/editGuildModal.js';
 import joinPolicySelect from './selects/joinPolicySelect.js';
+import { createEmojiSelect, settingsEmojiSelect } from './selects/clanEmojiSelect.js';
 
 const handlers = [
   createGuildButton,
@@ -25,6 +26,8 @@ const handlers = [
   createGuildModal,
   editGuildModal,
   joinPolicySelect,
+  createEmojiSelect,
+  settingsEmojiSelect,
 ];
 
 /** customId base -> handler */

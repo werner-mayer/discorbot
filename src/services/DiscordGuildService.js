@@ -79,8 +79,24 @@ export class DiscordGuildService {
     }
   }
 
-  categoryName(guildName) {
-    return truncate(`${this.config.guild.categoryPrefix} ${guildName.toUpperCase()}`, 100);
+  emojiOf(guildRecord) {
+    return guildRecord?.emoji || this.config.guild.defaultEmoji;
+  }
+
+  categoryName(guildName, emoji) {
+    const icone = emoji || this.config.guild.defaultEmoji;
+    return truncate(`${icone} ${this.config.guild.categoryLabel} - ${guildName.toUpperCase()}`, 100);
+  }
+
+  /** Canais nascem com nome automatico a partir do emoji do cla. */
+  textChannelName(emoji) {
+    const icone = emoji || this.config.guild.defaultEmoji;
+    return slugifyChannelName(`${icone}・${this.config.guild.textChannelLabel}`, 'chat');
+  }
+
+  voiceChannelName(emoji) {
+    const icone = emoji || this.config.guild.defaultEmoji;
+    return `${icone}・${this.config.guild.voiceChannelLabel}`.slice(0, 100);
   }
 
   // ------------------------------------------------------------ overwrites
@@ -227,9 +243,9 @@ export class DiscordGuildService {
 
   // --------------------------------------------------------------- criacao
 
-  createRole(discordGuild, { name, tag, color }) {
+  createRole(discordGuild, { name, tag, color, emoji }) {
     return discordGuild.roles.create({
-      name: `[${tag}] ${name}`,
+      name: `${emoji || this.config.guild.defaultEmoji} [${tag}] ${name}`,
       colors: { primaryColor: color },
       hoist: this.config.guild.roleHoist,
       mentionable: this.config.guild.roleMentionable,
@@ -237,28 +253,28 @@ export class DiscordGuildService {
     });
   }
 
-  async createCategory(discordGuild, { name, roleId, ownerId, officerIds = [] }) {
+  async createCategory(discordGuild, { name, emoji, roleId, ownerId, officerIds = [] }) {
     await this.ensureMembersCached(discordGuild, [ownerId, ...officerIds]);
     return discordGuild.channels.create({
-      name: this.categoryName(name),
+      name: this.categoryName(name, emoji),
       type: ChannelType.GuildCategory,
       permissionOverwrites: this.buildCategoryOverwrites({ discordGuild, roleId, ownerId, officerIds }),
       reason: `Categoria do clã ${name}`,
     });
   }
 
-  createTextChannel(discordGuild, { categoryId, name }) {
+  createTextChannel(discordGuild, { categoryId, emoji }) {
     return discordGuild.channels.create({
-      name: slugifyChannelName(name || this.config.guild.defaultTextChannelName, 'chat'),
+      name: this.textChannelName(emoji),
       type: ChannelType.GuildText,
       parent: categoryId,
       reason: 'Canal de texto do clã',
     });
   }
 
-  createVoiceChannel(discordGuild, { categoryId, name }) {
+  createVoiceChannel(discordGuild, { categoryId, emoji }) {
     return discordGuild.channels.create({
-      name: (name || this.config.guild.defaultVoiceChannelName).slice(0, 100),
+      name: this.voiceChannelName(emoji),
       type: ChannelType.GuildVoice,
       parent: categoryId,
       reason: 'Canal de voz do clã',
@@ -269,27 +285,21 @@ export class DiscordGuildService {
    * Cria toda a estrutura de um clã. Em caso de falha no meio do caminho,
    * desfaz o que ja tinha sido criado (rollback) para nao deixar lixo.
    */
-  async createStructure(discordGuild, { name, tag, color, textChannelName, voiceChannelName, ownerId }) {
+  async createStructure(discordGuild, { name, tag, color, emoji, ownerId }) {
     this.assertBotCanManage(discordGuild);
 
     const created = [];
     try {
-      const role = await this.createRole(discordGuild, { name, tag, color });
+      const role = await this.createRole(discordGuild, { name, tag, color, emoji });
       created.push(role);
 
-      const category = await this.createCategory(discordGuild, { name, roleId: role.id, ownerId });
+      const category = await this.createCategory(discordGuild, { name, emoji, roleId: role.id, ownerId });
       created.push(category);
 
-      const textChannel = await this.createTextChannel(discordGuild, {
-        categoryId: category.id,
-        name: textChannelName,
-      });
+      const textChannel = await this.createTextChannel(discordGuild, { categoryId: category.id, emoji });
       created.push(textChannel);
 
-      const voiceChannel = await this.createVoiceChannel(discordGuild, {
-        categoryId: category.id,
-        name: voiceChannelName,
-      });
+      const voiceChannel = await this.createVoiceChannel(discordGuild, { categoryId: category.id, emoji });
       created.push(voiceChannel);
 
       return {
@@ -338,6 +348,7 @@ export class DiscordGuildService {
     if (!category) {
       category = await this.createCategory(discordGuild, {
         name: guildRecord.name,
+        emoji: this.emojiOf(guildRecord),
         roleId: role.id,
         ownerId: guildRecord.ownerId,
       });
@@ -351,7 +362,10 @@ export class DiscordGuildService {
       ChannelType.GuildText,
     );
     if (!textChannel) {
-      textChannel = await this.createTextChannel(discordGuild, { categoryId: category.id });
+      textChannel = await this.createTextChannel(discordGuild, {
+        categoryId: category.id,
+        emoji: this.emojiOf(guildRecord),
+      });
       patch.textChannelId = textChannel.id;
       repaired.push('canal de texto');
     }
@@ -362,7 +376,10 @@ export class DiscordGuildService {
       ChannelType.GuildVoice,
     );
     if (!voiceChannel) {
-      voiceChannel = await this.createVoiceChannel(discordGuild, { categoryId: category.id });
+      voiceChannel = await this.createVoiceChannel(discordGuild, {
+        categoryId: category.id,
+        emoji: this.emojiOf(guildRecord),
+      });
       patch.voiceChannelId = voiceChannel.id;
       repaired.push('canal de voz');
     }
@@ -443,16 +460,31 @@ export class DiscordGuildService {
     return results;
   }
 
-  async renameStructure(discordGuild, guildRecord, { name, tag, color }) {
+  /** Reflete nome, TAG, cor e emoji no cargo, na categoria e nos canais. */
+  async renameStructure(discordGuild, guildRecord, { name, tag, color, emoji }) {
+    const icone = emoji || this.emojiOf(guildRecord);
+
     const role = await this.fetchRole(discordGuild, guildRecord.roleId);
     if (role) {
       await role
-        .edit({ name: `[${tag}] ${name}`, colors: { primaryColor: color }, reason: 'Atualização do clã' })
+        .edit({
+          name: `${icone} [${tag}] ${name}`,
+          colors: { primaryColor: color },
+          reason: 'Atualização do clã',
+        })
         .catch(() => null);
     }
+
     const category = await this.fetchChannel(discordGuild, guildRecord.categoryId, ChannelType.GuildCategory);
-    if (category) {
-      await category.setName(this.categoryName(name)).catch(() => null);
+    if (category) await category.setName(this.categoryName(name, icone)).catch(() => null);
+
+    // Os canais so acompanham quando o emoji muda: renomear a cada edicao
+    // apagaria um nome que a lideranca tenha ajustado na mao.
+    if (emoji && emoji !== guildRecord.emoji) {
+      const texto = await this.fetchChannel(discordGuild, guildRecord.textChannelId, ChannelType.GuildText);
+      if (texto) await texto.setName(this.textChannelName(icone)).catch(() => null);
+      const voz = await this.fetchChannel(discordGuild, guildRecord.voiceChannelId, ChannelType.GuildVoice);
+      if (voz) await voz.setName(this.voiceChannelName(icone)).catch(() => null);
     }
   }
 }

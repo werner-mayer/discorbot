@@ -20,6 +20,8 @@ model Guild {
   tag            String
   tagNormalized  String
   color          String
+  // Emoji de identidade: aparece no cargo, na categoria e nos canais.
+  emoji          String  @default("⚔️")
 
   // IDs dos objetos do Discord. Sempre por ID, nunca por nome,
   // porque nomes podem ser alterados manualmente pelos usuarios.

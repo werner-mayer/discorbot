@@ -16,6 +16,8 @@ export const CustomId = Object.freeze({
   DELETE_CONFIRM: 'guild:delete-confirm',
   EDIT_MODAL: 'guild:edit-modal',
   SETTINGS_SELECT: 'guild:settings-policy',
+  EMOJI_CREATE: 'guild:emoji-create',
+  EMOJI_SETTINGS: 'guild:emoji-settings',
   JOIN_APPROVE: 'guild:join-approve',
   JOIN_REJECT: 'guild:join-reject',
   WAR_ACCEPT: 'guild:war-accept',

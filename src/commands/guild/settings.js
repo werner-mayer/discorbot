@@ -1,4 +1,5 @@
-import { joinPolicyRow } from '../../interactions/components.js';
+import { joinPolicyRow, clanEmojiRow } from '../../interactions/components.js';
+import { CustomId } from '../../models/customIds.js';
 import { settingsEmbed } from '../../utils/embeds.js';
 import { replyEphemeral } from '../../utils/interactionReply.js';
 
@@ -9,6 +10,6 @@ export default async function settings(interaction, { services }) {
 
   return replyEphemeral(interaction, {
     embeds: [settingsEmbed(guild)],
-    components: [joinPolicyRow(guild)],
+    components: [joinPolicyRow(guild), clanEmojiRow(CustomId.EMOJI_SETTINGS, guild.emoji)],
   });
 }

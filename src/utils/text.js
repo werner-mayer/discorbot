@@ -14,7 +14,9 @@ export function slugifyChannelName(value, fallback = 'canal') {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '-')
-    .replace(/[^\p{L}\p{N}\p{Emoji}\-_・]/gu, '')
+    // \uFE0F (variation selector) e \u200D (ZWJ) fazem parte do emoji:
+    // sem eles "⚔️" vira "⚔" e o nome criado diverge da prévia mostrada.
+    .replace(/[^\p{L}\p{N}\p{Emoji}\u200D\uFE0F\-_・]/gu, '')
     .replace(/-{2,}/g, '-')
     .replace(/^-|-$/g, '');
   return slug.slice(0, 90) || fallback;

@@ -53,9 +53,22 @@ Se `GUILD_CREATION_CHANNEL_ID` estiver configurado, o painel vai direto para lá
 ## Fluxo de criação
 
 ```
-#⚔️┃criar-clã → [ Criar Clã ] → modal (Nome, TAG, Cor, canal de texto, canal de voz)
-              → embed de confirmação → [ Confirmar ]
+#⚔️┃criar-clã → [ Criar Clã ] → modal (Nome, TAG, Cor)
+              → confirmação com prévia + menu de emoji → [ Confirmar ]
 ```
+
+O modal pede só o essencial. Os nomes dos canais **não são digitados**: nascem do
+emoji escolhido no menu, e a prévia mostra exatamente o que vai ser criado:
+
+```
+🐉 CLÃ - DRAGONS
+├── #🐉・chat
+└── 🐉・voz
+```
+
+O emoji também entra no nome do cargo (`🐉 [DRG] Dragons`), então aparece na lista de
+membros. Trocar depois em `/cla settings` renomeia cargo, categoria e canais de uma vez.
+As palavras `CLÃ`, `chat` e `voz` são configuráveis no `.env`.
 
 Ao confirmar, o `GuildService` executa, nesta ordem:
 
@@ -63,8 +76,8 @@ Ao confirmar, o `GuildService` executa, nesta ordem:
 2. checa nome único no servidor;
 3. checa TAG única no servidor;
 4. checa que o usuário não está em outro clã;
-5. cria o cargo com a cor escolhida (`[TAG] Nome`, destacado na lista de membros);
-6. cria a categoria `⚔️ CLÃ - NOME` com os overwrites de permissão;
+5. cria o cargo com a cor e o emoji escolhidos (`<emoji> [TAG] Nome`, destacado na lista de membros);
+6. cria a categoria `<emoji> CLÃ - NOME` com os overwrites de permissão;
 7. cria o canal de texto e o canal de voz (herdam as permissões da categoria);
 8. persiste o clã e registra o criador como `OWNER` — em **uma escrita atômica**;
 9. aplica o cargo ao criador;

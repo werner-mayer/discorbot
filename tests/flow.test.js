@@ -42,22 +42,22 @@ let guild;
 
 await test('cria clã com cargo, categoria e canais', async () => {
   guild = await guildService.createGuild(discordGuild, 'owner-1', {
-    name: 'Dragons', tag: 'drg', color: '#f00', textChannelName: 'Chat Geral', voiceChannelName: '🔊・voz',
+    name: 'Dragons', tag: 'drg', color: '#f00', emoji: '🐉',
   });
   assert.equal(guild.name, 'Dragons');
   assert.equal(guild.tag, 'DRG');
   assert.equal(guild.color, '#FF0000');
   const role = await discordGuild.roles.fetch(guild.roleId);
-  assert.equal(role.name, '[DRG] Dragons');
+  assert.equal(role.name, '🐉 [DRG] Dragons');
   assert.equal(role.color, '#FF0000');
   assert.equal(role.hoist, true);
   const cat = await discordGuild.channels.fetch(guild.categoryId);
-  assert.equal(cat.name, '⚔️ CLÃ - DRAGONS');
+  assert.equal(cat.name, '🐉 CLÃ - DRAGONS');
   const text = await discordGuild.channels.fetch(guild.textChannelId);
-  assert.equal(text.name, 'chat-geral');
+  assert.equal(text.name, '🐉・chat', 'nome default derivado do emoji');
   assert.equal(text.parentId, cat.id);
   const voice = await discordGuild.channels.fetch(guild.voiceChannelId);
-  assert.equal(voice.name, '🔊・voz');
+  assert.equal(voice.name, '🐉・voz', 'nome default derivado do emoji');
 });
 
 await test('criador recebe o cargo e vira OWNER', async () => {
@@ -154,6 +154,30 @@ await test('ignora overwrite de quem saiu do servidor', async () => {
   assert.ok(cat.overwrites.find((o) => o.id === reparado.roleId), 'o clã continua com acesso');
 });
 
+await test('emoji invalido cai no default em vez de quebrar', async () => {
+  const g = createMockGuild('4444');
+  g.addUser('dono-e');
+  const cla = await guildService.createGuild(g, 'dono-e', { name: 'Padrao', tag: 'PAD', color: '#fff', emoji: '<script>' });
+  assert.equal(cla.emoji, '⚔️');
+  assert.equal((await g.channels.fetch(cla.textChannelId)).name, '⚔️・chat');
+});
+
+await test('trocar o emoji renomeia cargo, categoria e canais', async () => {
+  const g = createMockGuild('3333');
+  g.addUser('dono-t');
+  let cla = await guildService.createGuild(g, 'dono-t', { name: 'Trocas', tag: 'TRC', color: '#00ff00', emoji: '🐺' });
+  assert.equal((await g.roles.fetch(cla.roleId)).name, '🐺 [TRC] Trocas');
+
+  cla = await services.settingsService.setEmoji(g, cla, '🔥', { actorId: 'dono-t' });
+  assert.equal(cla.emoji, '🔥');
+  assert.equal((await g.roles.fetch(cla.roleId)).name, '🔥 [TRC] Trocas');
+  assert.equal((await g.channels.fetch(cla.categoryId)).name, '🔥 CLÃ - TROCAS');
+  assert.equal((await g.channels.fetch(cla.textChannelId)).name, '🔥・chat');
+  assert.equal((await g.channels.fetch(cla.voiceChannelId)).name, '🔥・voz');
+
+  await assert.rejects(() => services.settingsService.setEmoji(g, cla, 'xyz', {}), (e) => /Emoji inválido/.test(e.message));
+});
+
 await test('rejeita nome duplicado', async () => {
   await assert.rejects(
     () => guildService.createGuild(discordGuild, 'member-3', { name: 'dragons', tag: 'XPT', color: '#00FF00' }),
@@ -226,7 +250,7 @@ await test('auto-reparo recria cargo e canal apagados manualmente', async () => 
   assert.deepEqual(repaired.sort(), ['canal de texto', 'cargo']);
   assert.notEqual(fixed.roleId, guild.roleId);
   const newRole = await discordGuild.roles.fetch(fixed.roleId);
-  assert.equal(newRole.name, '[DRG] Dragons');
+  assert.equal(newRole.name, '🐉 [DRG] Dragons');
   assert.ok(owner.roles.cache.has(fixed.roleId), 'membros recebem o cargo novo');
   guild = fixed;
 });

@@ -10,6 +10,7 @@ import {
 import config from '../config/index.js';
 import { CustomId, buildCustomId } from '../models/customIds.js';
 import { JoinPolicy, JOIN_POLICY_LABEL, JOIN_POLICY_DESCRIPTION } from '../models/JoinPolicy.js';
+import { CLAN_EMOJIS } from '../models/ClanEmojis.js';
 
 export function createGuildButtonRow() {
   return new ActionRowBuilder().addComponents(
@@ -21,11 +22,14 @@ export function createGuildButtonRow() {
   );
 }
 
-/** Modal de criacao. O Discord permite no maximo 5 campos por modal. */
+/**
+ * Modal de criacao. Pede so o essencial: os nomes dos canais nao sao mais
+ * digitados — derivam do emoji escolhido logo depois, na confirmacao.
+ */
 export function createGuildModal() {
   const { guild } = config;
 
-  const rows = [
+  const campos = [
     new TextInputBuilder()
       .setCustomId('name')
       .setLabel('Nome do clã')
@@ -51,29 +55,26 @@ export function createGuildModal() {
       .setRequired(true),
   ];
 
-  if (guild.allowCustomChannelNames) {
-    rows.push(
-      new TextInputBuilder()
-        .setCustomId('textChannelName')
-        .setLabel('Nome do canal de texto (opcional)')
-        .setPlaceholder(guild.defaultTextChannelName)
-        .setStyle(TextInputStyle.Short)
-        .setMaxLength(90)
-        .setRequired(false),
-      new TextInputBuilder()
-        .setCustomId('voiceChannelName')
-        .setLabel('Nome do canal de voz (opcional)')
-        .setPlaceholder(guild.defaultVoiceChannelName)
-        .setStyle(TextInputStyle.Short)
-        .setMaxLength(90)
-        .setRequired(false),
-    );
-  }
-
   return new ModalBuilder()
     .setCustomId(CustomId.CREATE_MODAL)
     .setTitle('Criar clã')
-    .addComponents(rows.map((input) => new ActionRowBuilder().addComponents(input)));
+    .addComponents(campos.map((campo) => new ActionRowBuilder().addComponents(campo)));
+}
+
+/** Grade de emojis. Usada na criacao e em /cla settings. */
+export function clanEmojiRow(customId, selecionado) {
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(customId)
+    .setPlaceholder('Escolha o emoji do clã')
+    .addOptions(
+      CLAN_EMOJIS.map(({ emoji, label }) => ({
+        label,
+        value: emoji,
+        emoji,
+        default: emoji === selecionado,
+      })),
+    );
+  return new ActionRowBuilder().addComponents(menu);
 }
 
 export function confirmationRow() {
