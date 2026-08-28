@@ -56,6 +56,35 @@ export class GuildRepository {
   countMembers(guildId) {
     return this.db.guildMember.count({ where: { guildId } });
   }
+
+  /** Ranking do servidor: mais pontos primeiro, desempate pelo mais antigo. */
+  listRanked(discordGuildId, take = 10) {
+    return this.db.guild.findMany({
+      where: { discordGuildId },
+      orderBy: [{ points: 'desc' }, { createdAt: 'asc' }],
+      take,
+      include: { _count: { select: { members: true } } },
+    });
+  }
+
+  /** Busca por nome ou TAG, usada no autocomplete dos comandos. */
+  search(discordGuildId, term, take = 25) {
+    const query = String(term ?? '').trim().toLowerCase();
+    return this.db.guild.findMany({
+      where: {
+        discordGuildId,
+        ...(query
+          ? { OR: [{ nameNormalized: { contains: query } }, { tagNormalized: { contains: query } }] }
+          : {}),
+      },
+      orderBy: { name: 'asc' },
+      take,
+    });
+  }
+
+  addPoints(id, delta) {
+    return this.db.guild.update({ where: { id }, data: { points: { increment: delta } } });
+  }
 }
 
 export default GuildRepository;

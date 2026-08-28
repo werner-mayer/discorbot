@@ -14,7 +14,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "setup": "node src/scripts/setup.js",
-    "test": "DATABASE_URL=\"file:../data/test.db\" prisma db push --skip-generate --accept-data-loss --force-reset >/dev/null && DATABASE_URL=\"file:../data/test.db\" node tests/flow.test.js"
+    "test": "DATABASE_URL=\"file:../data/test.db\" prisma db push --skip-generate --accept-data-loss --force-reset >/dev/null && DATABASE_URL=\"file:../data/test.db\" node tests/flow.test.js && DATABASE_URL=\"file:../data/test.db\" node tests/features.test.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

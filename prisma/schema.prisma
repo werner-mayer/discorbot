@@ -30,20 +30,27 @@ model Guild {
 
   ownerId        String
 
-  // Campos preparados para features futuras (descricao, logo, limite,
-  // niveis, ranking e pontos). Nao usados pelo MVP.
   description String?
   iconUrl     String?
   memberLimit Int?
-  level       Int     @default(1)
   points      Int     @default(0)
+  // Derivado dos pontos (ver GuildRankingService), guardado para ordenar rapido.
+  level       Int     @default(1)
+
+  // Como novos membros entram: INVITE_ONLY | APPROVAL | OPEN
+  joinPolicy     String  @default("INVITE_ONLY")
+  // Mensagem postada no canal do cla quando alguem entra ({user} e {cla})
+  welcomeMessage String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members  GuildMember[]
-  invites  GuildInvite[]
-  auditLogs GuildAuditLog[]
+  members      GuildMember[]
+  invites      GuildInvite[]
+  auditLogs    GuildAuditLog[]
+  joinRequests GuildJoinRequest[]
+  warsAsChallenger GuildWar[] @relation("challenger")
+  warsAsOpponent   GuildWar[] @relation("opponent")
 
   @@unique([discordGuildId, nameNormalized])
   @@unique([discordGuildId, tagNormalized])
@@ -102,4 +109,52 @@ model GuildAuditLog {
   createdAt DateTime @default(now())
 
   @@index([discordGuildId, createdAt])
+}
+
+
+/// Pedido de entrada quando o cla usa joinPolicy = APPROVAL.
+model GuildJoinRequest {
+  id             String @id @default(cuid())
+  guildId        String
+  guild          Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  discordGuildId String
+
+  discordUserId String
+  message       String?
+
+  // PENDING | APPROVED | REJECTED | CANCELLED
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+  respondedBy String?
+
+  @@index([guildId, status])
+  @@index([discordUserId, status])
+}
+
+/// Guerra entre dois clas. O placar e reportado por um administrador.
+model GuildWar {
+  id             String @id @default(cuid())
+  discordGuildId String
+
+  challengerId String
+  challenger   Guild  @relation("challenger", fields: [challengerId], references: [id], onDelete: Cascade)
+  opponentId   String
+  opponent     Guild  @relation("opponent", fields: [opponentId], references: [id], onDelete: Cascade)
+
+  // PENDING | ACTIVE | FINISHED | DECLINED | CANCELLED
+  status          String @default("PENDING")
+  challengerScore Int    @default(0)
+  opponentScore   Int    @default(0)
+  winnerId        String?
+  prize           Int    @default(0)
+
+  createdBy String
+  createdAt DateTime  @default(now())
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  @@index([discordGuildId, status])
+  @@index([challengerId])
+  @@index([opponentId])
 }

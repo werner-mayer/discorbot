@@ -3,6 +3,7 @@ import GuildRepository from '../repositories/GuildRepository.js';
 import GuildMemberRepository from '../repositories/GuildMemberRepository.js';
 import DiscordGuildService from './DiscordGuildService.js';
 import GuildService from './GuildService.js';
+import GuildSettingsService from './GuildSettingsService.js';
 import AuditLogService from './AuditLogService.js';
 import { AuditAction } from '../models/AuditAction.js';
 import { GuildMemberRole } from '../models/GuildMemberRole.js';
@@ -18,6 +19,7 @@ export class GuildMemberService {
     memberRepository = new GuildMemberRepository(),
     discordGuildService = new DiscordGuildService(),
     guildService = new GuildService(),
+    settingsService = new GuildSettingsService(),
     auditLogService = new AuditLogService(),
     configuration = config,
   } = {}) {
@@ -25,6 +27,7 @@ export class GuildMemberService {
     this.members = memberRepository;
     this.discord = discordGuildService;
     this.guildService = guildService;
+    this.settings = settingsService;
     this.audit = auditLogService;
     this.config = configuration;
   }
@@ -80,6 +83,8 @@ export class GuildMemberService {
       actorId: actorId ?? userId,
       targetId: userId,
     });
+
+    await this.#anunciarEntrada(discordGuild, guild, userId);
 
     logger.info(`${userId} entrou no clã ${guild.name}`);
     return { guild, membership };
@@ -140,6 +145,43 @@ export class GuildMemberService {
     });
 
     return updated;
+  }
+
+  /** Boas-vindas no canal do cla. Falhar aqui nunca derruba a entrada. */
+  async #anunciarEntrada(discordGuild, guildRecord, userId) {
+    try {
+      const canal = await this.discord.fetchChannel(discordGuild, guildRecord.textChannelId);
+      if (!canal?.isTextBased?.()) return;
+      await canal.send({ content: this.settings.renderWelcome(guildRecord, userId) });
+    } catch (error) {
+      logger.warn('Não consegui postar a mensagem de boas-vindas', error?.message);
+    }
+  }
+
+  /** Promove a oficial: passa a poder convidar e remover membros. */
+  async promote(discordGuild, guildRecord, userId, { actorId } = {}) {
+    const membership = await this.members.findInGuild(guildRecord.id, userId);
+    if (!membership) throw new NotFoundError('Esse usuário não faz parte deste clã.');
+    if (membership.role === GuildMemberRole.OWNER) {
+      throw new ConflictError('O líder já tem o cargo máximo do clã.');
+    }
+    if (membership.role === GuildMemberRole.OFFICER) {
+      throw new ConflictError(`<@${userId}> já é oficial.`);
+    }
+    return this.changeMemberRole(discordGuild, guildRecord, userId, GuildMemberRole.OFFICER, { actorId });
+  }
+
+  /** Rebaixa um oficial de volta a membro comum. */
+  async demote(discordGuild, guildRecord, userId, { actorId } = {}) {
+    const membership = await this.members.findInGuild(guildRecord.id, userId);
+    if (!membership) throw new NotFoundError('Esse usuário não faz parte deste clã.');
+    if (membership.role === GuildMemberRole.OWNER) {
+      throw new ConflictError('O líder não pode ser rebaixado. Use `/cla transfer` para passar a liderança.');
+    }
+    if (membership.role === GuildMemberRole.MEMBER) {
+      throw new ConflictError(`<@${userId}> já é membro comum.`);
+    }
+    return this.changeMemberRole(discordGuild, guildRecord, userId, GuildMemberRole.MEMBER, { actorId });
   }
 
   /** Transfere a lideranca; o lider anterior vira oficial. */

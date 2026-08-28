@@ -14,6 +14,12 @@ export const CustomId = Object.freeze({
   INVITE_DECLINE: 'guild:invite-decline',
   LEAVE_CONFIRM: 'guild:leave-confirm',
   DELETE_CONFIRM: 'guild:delete-confirm',
+  EDIT_MODAL: 'guild:edit-modal',
+  SETTINGS_SELECT: 'guild:settings-policy',
+  JOIN_APPROVE: 'guild:join-approve',
+  JOIN_REJECT: 'guild:join-reject',
+  WAR_ACCEPT: 'guild:war-accept',
+  WAR_DECLINE: 'guild:war-decline',
 });
 
 export function buildCustomId(base, ...args) {

@@ -67,6 +67,11 @@ export const config = {
     // 0 = sem limite. Preparado para a feature futura de limite por clã.
     maxMembers: number('GUILD_MAX_MEMBERS', 0),
     draftTtlMinutes: number('GUILD_DRAFT_TTL_MINUTES', 10),
+    // Progressao: nivel = floor(pontos / pointsPerLevel) + 1
+    pointsPerLevel: number('GUILD_POINTS_PER_LEVEL', 100),
+    // Pontos que o vencedor de uma guerra leva por padrao
+    warPrize: number('GUILD_WAR_PRIZE', 50),
+    maxDescriptionLength: number('GUILD_MAX_DESCRIPTION_LENGTH', 300),
   },
 };
 

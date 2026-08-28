@@ -19,6 +19,15 @@ export default {
     const context = { services };
 
     try {
+      // Autocomplete tem 3s de orcamento e nao aceita embed de erro:
+      // qualquer falha responde lista vazia.
+      if (interaction.isAutocomplete()) {
+        const command = resolveCommand(interaction.commandName);
+        if (!command?.autocomplete) return;
+        await command.autocomplete(interaction, context).catch(() => interaction.respond([]).catch(() => null));
+        return;
+      }
+
       if (interaction.isChatInputCommand()) {
         const command = resolveCommand(interaction.commandName);
         if (!command) return;

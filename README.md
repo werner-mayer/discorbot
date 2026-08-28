@@ -78,16 +78,31 @@ Se o **banco** falhar depois da estrutura pronta, a estrutura também é desfeit
 | Comando | Quem pode | O que faz |
 |---|---|---|
 | `/cla create` | todos | Abre o modal de criação (mesmo fluxo do botão) |
-| `/cla info [usuario]` | todos | Dados do clã (cargo, canais, membros) |
-| `/cla invite @usuario` | líder, oficiais, admin | Envia convite por DM (ou no canal, se DM fechada) |
-| `/cla kick @usuario` | líder, oficiais, admin | Remove membro, cargo e acesso |
+| `/cla info [usuario]` | todos | Dados do clã: nível, pontos, ranking, guerras, canais |
 | `/cla members` | membros | Lista os membros e seus papéis |
 | `/cla leave` | membros | Sai do clã (com confirmação) |
-| `/cla delete` | líder, admin | Apaga cargo, categoria, canais e registros |
+| `/cla join <cla> [mensagem]` | todos | Entra ou pede entrada, conforme a política do clã |
+| `/cla invite @usuario` | líder, oficiais, admin | Envia convite por DM (ou no canal, se DM fechada) |
+| `/cla requests` | líder, oficiais, admin | Pedidos pendentes, com botões de aprovar/recusar |
+| `/cla kick @usuario` | líder, oficiais, admin | Remove membro, cargo e acesso |
+| `/cla promote @usuario` | líder, admin | Promove a **oficial** |
+| `/cla demote @usuario` | líder, admin | Rebaixa oficial a membro |
 | `/cla transfer @usuario` | líder, admin | Passa a liderança (o antigo líder vira oficial) |
+| `/cla edit` | líder, admin | Modal: descrição, boas-vindas, ícone, limite e cor |
+| `/cla settings` | líder, admin | Escolhe a política de entrada no menu |
+| `/cla delete` | líder, admin | Apaga cargo, categoria, canais e registros |
+| `/cla ranking [limite]` | todos | Clãs ordenados por pontos |
+| `/cla points <cla> <valor> [motivo]` | admin | Dá ou tira pontos (autocomplete de clãs) |
+| `/cla war challenge <cla> [pontos]` | líder, admin | Desafia outro clã |
+| `/cla war list` | todos | Guerras pendentes e em andamento |
+| `/cla war report <guerra> <placar>` | admin | Registra o resultado e distribui os pontos |
+| `/cla war cancel <guerra>` | líderes envolvidos, admin | Cancela um desafio ou guerra |
 | `/cla repair [todas]` | líder, admin | Recria o que foi apagado manualmente |
 | `/cla panel [canal]` | admin | Publica o painel “Criar Clã” |
 | `/cla list` | admin | Lista todos os clãs do servidor |
+| `/cla logs [limite]` | admin | Histórico administrativo do sistema |
+
+As opções `<cla>` e `<guerra>` têm **autocomplete**.
 
 Botões: `Criar Clã`, `Confirmar`/`Cancelar`, `Aceitar`/`Recusar` convite, confirmações de saída e exclusão.
 
@@ -106,6 +121,35 @@ Botões: `Criar Clã`, `Confirmar`/`Cancelar`, `Aceitar`/`Recusar` convite, conf
 
 Os overwrites vivem **na categoria**; os canais herdam. Existe um único lugar de verdade
 (`DiscordGuildService.buildCategoryOverwrites`) e `syncPermissions` reaplica quando algo muda.
+
+---
+
+## Entrada de membros
+
+Cada clã escolhe em `/cla settings` como recebe gente nova:
+
+| Política | Comportamento |
+|---|---|
+| **Somente convite** (padrão) | Ninguém entra sem `/cla invite`. `/cla join` é recusado com um aviso. |
+| **Mediante aprovação** | `/cla join` cria um pedido; a liderança decide por botão no canal do clã ou em `/cla requests`. |
+| **Entrada livre** | `/cla join` entra na hora. |
+
+Ao entrar, o clã posta a mensagem de boas-vindas configurada em `/cla edit`,
+com os placeholders `{user}`, `{cla}` e `{tag}`. Um usuário continua podendo
+pertencer a **um clã por vez**: entrar em um cancela os pedidos pendentes nos outros.
+
+---
+
+## Progressão e guerras
+
+Pontos são a moeda do sistema: `/cla points` (admin) ajusta manualmente e as guerras
+premiam o vencedor. O nível é derivado — `nível = ⌊pontos / GUILD_POINTS_PER_LEVEL⌋ + 1` —
+e fica gravado para ordenar o `/cla ranking` sem recalcular.
+
+Uma guerra segue: líder desafia → líder adversário aceita pelo botão → fica **em andamento**
+→ um **administrador** reporta o placar. Quem reporta é a organização, não os envolvidos,
+para o resultado não virar discussão entre os dois clãs. O vencedor leva os pontos em
+disputa; empate não move pontuação.
 
 ---
 
@@ -187,15 +231,24 @@ roda sem token e sem servidor real.
 
 ---
 
-## Próximos passos já preparados
+## Estado das features
 
-| Feature | O que já existe |
+| Feature | Status |
 |---|---|
-| Descrição, logo, limite de membros | colunas no schema + `maxMembers` na config |
-| Níveis, ranking, pontos | colunas `level` e `points` |
-| Officers / sub-líderes | papel `OFFICER`, hierarquia por peso e `changeMemberRole()` |
-| Transferência de liderança | `/cla transfer` implementado |
-| Logs administrativos | `GuildAuditLog` + `AuditLogService` gravando desde já |
-| Painel administrativo | `/cla list`, `/cla repair todas` |
-| Aprovação de entrada | `GuildInvite` com máquina de status pronta para inverter o fluxo |
-| Guerras entre clãs | services isolados; basta um `GuildWarService` + entidade nova |
+| Criação completa (cargo, categoria, canais, permissões, banco) | ✅ |
+| Convites, entrada, saída, kick | ✅ |
+| Officers / sub-líderes | ✅ `/cla promote` · `/cla demote` |
+| Transferência de liderança | ✅ `/cla transfer` |
+| Descrição, logo/ícone, limite de membros | ✅ `/cla edit` |
+| Mensagens personalizadas | ✅ boas-vindas com placeholders |
+| Sistema de aprovação para entrada | ✅ `/cla settings` + `/cla requests` |
+| Pontos e níveis | ✅ `/cla points`, nível derivado |
+| Ranking | ✅ `/cla ranking` |
+| Guerras entre clãs | ✅ `/cla war` |
+| Logs administrativos | ✅ `/cla logs` |
+| Painel administrativo | ✅ `/cla list`, `/cla logs`, `/cla repair todas` |
+
+Ideias que a arquitetura já comporta sem refatoração: temporadas com reset de
+pontuação, recompensas automáticas por nível, campeonatos com chaveamento
+(o `GuildWar` já guarda placar e vencedor) e um painel web lendo os mesmos
+repositórios.

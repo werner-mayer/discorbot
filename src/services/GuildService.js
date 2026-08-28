@@ -86,6 +86,11 @@ export class GuildService {
     return this.guilds.listByServer(discordGuildId);
   }
 
+  /** Busca por nome ou TAG (autocomplete e comandos que recebem um cla). */
+  searchGuilds(discordGuildId, term, take = 25) {
+    return this.guilds.search(discordGuildId, term, take);
+  }
+
   listMembers(guildId) {
     return this.members.listByGuild(guildId);
   }

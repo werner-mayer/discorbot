@@ -1,6 +1,9 @@
 import { EmbedBuilder } from 'discord.js';
 import { colorToInt } from './color.js';
 import { ROLE_LABEL } from '../models/GuildMemberRole.js';
+import { JOIN_POLICY_LABEL } from '../models/JoinPolicy.js';
+import { WAR_STATUS_LABEL } from '../models/WarStatus.js';
+import { AUDIT_LABEL } from '../models/AuditAction.js';
 
 const COLORS = {
   success: 0x2ecc71,
@@ -57,20 +60,54 @@ export function confirmationEmbed(draft) {
     .setFooter({ text: 'Confirme para criar o cargo, a categoria e os canais.' });
 }
 
-export function guildInfoEmbed(guildRecord, { memberCount, members = [] }) {
+export function guildInfoEmbed(
+  guildRecord,
+  { memberCount, members = [], progress = null, position = null, warStats = null, pendingRequests = 0 },
+) {
   const owner = `<@${guildRecord.ownerId}>`;
+  const limite = guildRecord.memberLimit ? `/${guildRecord.memberLimit}` : '';
   const embed = new EmbedBuilder()
     .setColor(colorToInt(guildRecord.color))
     .setTitle(`[${guildRecord.tag}] ${guildRecord.name}`)
     .addFields(
       { name: 'Líder', value: owner, inline: true },
-      { name: 'Membros', value: String(memberCount), inline: true },
+      { name: 'Membros', value: `${memberCount}${limite}`, inline: true },
+      { name: 'Entrada', value: JOIN_POLICY_LABEL[guildRecord.joinPolicy] ?? '—', inline: true },
+      {
+        name: `Nível ${guildRecord.level}`,
+        value: progress
+          ? `${guildRecord.points} pts · faltam ${progress.missing} para o nível ${guildRecord.level + 1}`
+          : `${guildRecord.points} pts`,
+        inline: true,
+      },
+      {
+        name: 'Ranking',
+        value: position ? `#${position.position} de ${position.total}` : '—',
+        inline: true,
+      },
       { name: 'Cor', value: guildRecord.color, inline: true },
       { name: 'Cargo', value: `<@&${guildRecord.roleId}>`, inline: true },
       { name: 'Texto', value: `<#${guildRecord.textChannelId}>`, inline: true },
       { name: 'Voz', value: `<#${guildRecord.voiceChannelId}>`, inline: true },
     )
     .setFooter({ text: `Criado em ${guildRecord.createdAt.toLocaleDateString('pt-BR')}` });
+
+  if (warStats && (warStats.total || warStats.emAndamento)) {
+    embed.addFields({
+      name: 'Guerras',
+      value:
+        `${warStats.vitorias}V · ${warStats.derrotas}D · ${warStats.empates}E` +
+        (warStats.emAndamento ? ` · ${warStats.emAndamento} em andamento` : ''),
+      inline: true,
+    });
+  }
+  if (pendingRequests) {
+    embed.addFields({
+      name: 'Pedidos pendentes',
+      value: `${pendingRequests} — veja com \`/cla requests\``,
+      inline: true,
+    });
+  }
 
   if (guildRecord.description) embed.setDescription(guildRecord.description);
   if (guildRecord.iconUrl) embed.setThumbnail(guildRecord.iconUrl);
@@ -108,4 +145,112 @@ export function inviteEmbed(guildRecord, inviterId) {
     .setDescription(
       `Você foi convidado por <@${inviterId}> para entrar no clã **${guildRecord.name}** [${guildRecord.tag}].`,
     );
+}
+
+
+export function rankingEmbed(guilds, { pointsPerLevel }) {
+  const medalha = ['🥇', '🥈', '🥉'];
+  const linhas = guilds.map((guild, index) => {
+    const posicao = medalha[index] ?? `\`${String(index + 1).padStart(2, '0')}\``;
+    return (
+      `${posicao} **[${guild.tag}] ${guild.name}** — ` +
+      `nível ${guild.level} · ${guild.points} pts · ${guild._count?.members ?? 0} membro(s)`
+    );
+  });
+
+  return new EmbedBuilder()
+    .setColor(COLORS.info)
+    .setTitle('🏆 Ranking de clãs')
+    .setDescription(linhas.join('\n') || 'Nenhum clã pontuou ainda.')
+    .setFooter({ text: `A cada ${pointsPerLevel} pontos o clã sobe um nível.` });
+}
+
+export function joinRequestEmbed(guildRecord, request, user) {
+  const embed = new EmbedBuilder()
+    .setColor(colorToInt(guildRecord.color))
+    .setTitle('📥 Pedido de entrada')
+    .setDescription(`<@${request.discordUserId}> quer entrar em **${guildRecord.name}** [${guildRecord.tag}].`);
+
+  if (request.message) embed.addFields({ name: 'Mensagem', value: request.message });
+  if (user?.displayAvatarURL) embed.setThumbnail(user.displayAvatarURL());
+  return embed;
+}
+
+export function requestsListEmbed(guildRecord, requests) {
+  const linhas = requests.map(
+    (request, index) =>
+      `\`${String(index + 1).padStart(2, '0')}\` <@${request.discordUserId}>` +
+      (request.message ? ` — _${request.message.slice(0, 80)}_` : ''),
+  );
+  return new EmbedBuilder()
+    .setColor(colorToInt(guildRecord.color))
+    .setTitle(`Pedidos pendentes — [${guildRecord.tag}] ${guildRecord.name}`)
+    .setDescription(linhas.join('\n') || 'Nenhum pedido pendente.')
+    .setFooter({ text: `${requests.length} pedido(s)` });
+}
+
+export function warEmbed(war, { titulo = null } = {}) {
+  const embed = new EmbedBuilder()
+    .setColor(colorToInt(war.challenger.color))
+    .setTitle(titulo ?? `⚔️ ${war.challenger.name} vs ${war.opponent.name}`)
+    .addFields(
+      { name: 'Desafiante', value: `**[${war.challenger.tag}] ${war.challenger.name}**`, inline: true },
+      { name: 'Desafiado', value: `**[${war.opponent.tag}] ${war.opponent.name}**`, inline: true },
+      { name: 'Status', value: WAR_STATUS_LABEL[war.status] ?? war.status, inline: true },
+    );
+
+  if (war.prize) embed.addFields({ name: 'Em disputa', value: `${war.prize} pontos`, inline: true });
+  if (war.status === 'FINISHED') {
+    embed.addFields(
+      { name: 'Placar', value: `${war.challengerScore} x ${war.opponentScore}`, inline: true },
+      {
+        name: 'Resultado',
+        value: war.winnerId
+          ? `🏆 ${war.winnerId === war.challengerId ? war.challenger.name : war.opponent.name}`
+          : '🤝 Empate',
+        inline: true,
+      },
+    );
+  }
+  return embed;
+}
+
+export function warsListEmbed(wars) {
+  const linhas = wars.map(
+    (war) =>
+      `${WAR_STATUS_LABEL[war.status] ?? war.status} — **${war.challenger.name}** vs **${war.opponent.name}**` +
+      (war.prize ? ` · ${war.prize} pts` : ''),
+  );
+  return new EmbedBuilder()
+    .setColor(COLORS.info)
+    .setTitle('⚔️ Guerras em aberto')
+    .setDescription(linhas.join('\n') || 'Nenhuma guerra em aberto.');
+}
+
+export function auditLogEmbed(logs, { resolveGuildName } = {}) {
+  const linhas = logs.map((log) => {
+    const quando = `<t:${Math.floor(log.createdAt.getTime() / 1000)}:R>`;
+    const alvo = log.targetId ? ` → <@${log.targetId}>` : '';
+    const cla = resolveGuildName?.(log.guildId);
+    return `${quando} **${AUDIT_LABEL[log.action] ?? log.action}** por <@${log.actorId}>${alvo}${cla ? ` _(${cla})_` : ''}`;
+  });
+  return new EmbedBuilder()
+    .setColor(COLORS.info)
+    .setTitle('📋 Log administrativo')
+    .setDescription(linhas.join('\n') || 'Nenhuma ação registrada ainda.')
+    .setFooter({ text: `${logs.length} registro(s) mais recentes` });
+}
+
+export function settingsEmbed(guildRecord) {
+  return new EmbedBuilder()
+    .setColor(colorToInt(guildRecord.color))
+    .setTitle(`Configurações — [${guildRecord.tag}] ${guildRecord.name}`)
+    .addFields(
+      { name: 'Entrada', value: JOIN_POLICY_LABEL[guildRecord.joinPolicy] ?? '—', inline: true },
+      { name: 'Limite de membros', value: guildRecord.memberLimit ? String(guildRecord.memberLimit) : 'sem limite', inline: true },
+      { name: 'Descrição', value: guildRecord.description || '_não definida_' },
+      { name: 'Boas-vindas', value: guildRecord.welcomeMessage || '_padrão do bot_' },
+      { name: 'Ícone', value: guildRecord.iconUrl || '_não definido_' },
+    )
+    .setFooter({ text: 'Use /cla edit para alterar textos e limite.' });
 }

@@ -27,10 +27,14 @@ class MockChannel {
     this.parentId = data.parent ?? null;
     this.overwrites = data.permissionOverwrites ?? [];
     this.children = { cache: new Map() };
+    this.sent = [];
     this.permissionOverwrites = {
       set: async (list) => { this.overwrites = list; return this; },
     };
   }
+  // usados pela mensagem de boas-vindas e pelos avisos de pedido/guerra
+  isTextBased() { return this.type === 0; }
+  async send(payload) { this.sent.push(payload); return { id: nextId(), ...payload }; }
   async lockPermissions() { return this; }
   async setParent(id) { this.parentId = id; return this; }
   async setName(name) { this.name = name; return this; }
