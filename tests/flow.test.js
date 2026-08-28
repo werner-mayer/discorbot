@@ -66,12 +66,28 @@ await test('criador recebe o cargo e vira OWNER', async () => {
   assert.equal(m.role, 'OWNER');
 });
 
-await test('permissoes: everyone negado, cargo da clã liberado', async () => {
+await test('permissoes: todos veem o canal, so o clã lê e entra', async () => {
+  const { PermissionFlagsBits } = await import('discord.js');
   const cat = await discordGuild.channels.fetch(guild.categoryId);
+
   const everyone = cat.overwrites.find((o) => o.id === 'everyone-role');
-  assert.ok(everyone.deny.length > 0);
+  assert.ok(everyone.allow.includes(PermissionFlagsBits.ViewChannel), '@everyone enxerga o canal');
+  assert.ok(everyone.deny.includes(PermissionFlagsBits.ReadMessageHistory), '@everyone nao le o historico');
+  assert.ok(everyone.deny.includes(PermissionFlagsBits.SendMessages), '@everyone nao escreve');
+  assert.ok(everyone.deny.includes(PermissionFlagsBits.Connect), '@everyone nao entra na voz');
+  assert.ok(!everyone.deny.includes(PermissionFlagsBits.ViewChannel), 'o canal nao fica escondido');
+
   const roleOw = cat.overwrites.find((o) => o.id === guild.roleId);
-  assert.ok(roleOw.allow.length > 0);
+  for (const flag of [
+    PermissionFlagsBits.ViewChannel,
+    PermissionFlagsBits.ReadMessageHistory,
+    PermissionFlagsBits.SendMessages,
+    PermissionFlagsBits.Connect,
+    PermissionFlagsBits.Speak,
+  ]) {
+    assert.ok(roleOw.allow.includes(flag), 'o cargo do clã recupera o que o @everyone perdeu');
+  }
+
   const ownerOw = cat.overwrites.find((o) => o.id === 'owner-1');
   assert.ok(ownerOw, 'lider deve ter overwrite de moderacao');
 });
@@ -104,6 +120,38 @@ await test('nao concede permissao que o proprio bot nao tem (evita 50013)', asyn
 
   const faltando = discordGuildService.missingGrantablePermissions(limitado);
   assert.ok(faltando.includes('Gerenciar Mensagens') && faltando.includes('Conectar'), 'reporta o que falta');
+});
+
+await test('repara clã cujo dono nao esta em cache (not a cached User or Role)', async () => {
+  const g2 = createMockGuild('6666');
+  g2.addUser('dono-frio');
+  const cla = await guildService.createGuild(g2, 'dono-frio', { name: 'Frios', tag: 'FRI', color: '#00AAFF' });
+
+  // Apaga a categoria e esquece o dono, como acontece num reparo automatico
+  // disparado sem interacao dele.
+  await (await g2.channels.fetch(cla.categoryId)).delete();
+  g2.uncache('dono-frio');
+
+  const { guild: reparado, repaired } = await guildService.repairGuild(g2, cla, { actorId: 'admin' });
+  assert.ok(repaired.includes('categoria'), 'categoria recriada sem estourar');
+
+  const cat = await g2.channels.fetch(reparado.categoryId);
+  assert.ok(cat.overwrites.find((o) => o.id === 'dono-frio'), 'dono volta a ter overwrite após ser buscado');
+});
+
+await test('ignora overwrite de quem saiu do servidor', async () => {
+  const g3 = createMockGuild('5555');
+  g3.addUser('dono-sumido');
+  const cla = await guildService.createGuild(g3, 'dono-sumido', { name: 'Sumidos', tag: 'SUM', color: '#FF8800' });
+
+  await (await g3.channels.fetch(cla.categoryId)).delete();
+  g3.members.store.delete('dono-sumido'); // saiu do servidor de vez
+  g3.uncache('dono-sumido');
+
+  const { guild: reparado } = await guildService.repairGuild(g3, cla, { actorId: 'admin' });
+  const cat = await g3.channels.fetch(reparado.categoryId);
+  assert.equal(cat.overwrites.find((o) => o.id === 'dono-sumido'), undefined, 'sem overwrite para quem sumiu');
+  assert.ok(cat.overwrites.find((o) => o.id === reparado.roleId), 'o clã continua com acesso');
 });
 
 await test('rejeita nome duplicado', async () => {

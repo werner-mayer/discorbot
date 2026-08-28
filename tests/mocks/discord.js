@@ -76,10 +76,18 @@ export function createMockGuild(id = '9999') {
     },
     fetch: async (cid) => guild.channels.store.get(cid) ?? Promise.reject(new Error('unknown channel')),
   };
+  // `cache` espelha quem o client ja conhece; `store` e quem existe no servidor.
+  // Separar os dois reproduz o erro real "not a cached User or Role".
   guild.members = {
     store: new Map(),
+    cache: new Map(),
     me: new MockMember(guild, 'bot-1', { admin: true }),
-    fetch: async (uid) => guild.members.store.get(uid) ?? Promise.reject(new Error('unknown member')),
+    fetch: async (uid) => {
+      const membro = guild.members.store.get(uid);
+      if (!membro) throw new Error('unknown member');
+      guild.members.cache.set(uid, membro);
+      return membro;
+    },
   };
   // Por padrao o bot do mock pode tudo. setBotPermissions() restringe o conjunto
   // para reproduzir o servidor real, onde o Discord recusa (50013) qualquer
@@ -88,6 +96,13 @@ export function createMockGuild(id = '9999') {
   guild.setBotPermissions = (allowed) => {
     guild.members.me.permissions = { has: (flag) => allowed.includes(flag) };
   };
-  guild.addUser = (uid, opts) => { const m = new MockMember(guild, uid, opts); guild.members.store.set(uid, m); return m; };
+  guild.addUser = (uid, opts) => {
+    const m = new MockMember(guild, uid, opts);
+    guild.members.store.set(uid, m);
+    guild.members.cache.set(uid, m);
+    return m;
+  };
+  /** Simula um usuario que existe no servidor mas ainda nao foi cacheado. */
+  guild.uncache = (uid) => guild.members.cache.delete(uid);
   return guild;
 }

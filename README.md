@@ -114,14 +114,21 @@ Botões: `Criar Clã`, `Confirmar`/`Cancelar`, `Aceitar`/`Recusar` convite, conf
 
 ## Permissões dos canais
 
-| Quem | Acesso |
-|---|---|
-| `@everyone` | `ViewChannel` e `Connect` **negados** |
-| Cargo do clã | ver, ler histórico, enviar mensagens, anexos, entrar e falar na voz |
-| Líder e oficiais | tudo acima + gerenciar mensagens, mutar e mover na voz |
-| Cargos em `ADMIN_ROLE_ID` | acesso completo de leitura/escrita/moderação |
-| Admins do Discord | continuam com acesso pela permissão `Administrator` |
-| Bot | ver e gerenciar os canais que criou |
+Os canais do clã são **visíveis para todo o servidor, mas fechados**: qualquer um vê que o
+clã existe e quem está na voz; só quem é do clã lê e participa.
+
+| Quem | Vê o canal | Lê / escreve | Entra na voz |
+|---|---|---|---|
+| `@everyone` | ✅ | ❌ | ❌ |
+| Cargo do clã | ✅ | ✅ | ✅ |
+| Líder e oficiais | ✅ | ✅ + moderação | ✅ + mutar/mover |
+| Cargos em `ADMIN_ROLE_ID` | ✅ | ✅ | ✅ |
+| Admins do Discord | ✅ | ✅ | ✅ |
+
+> **Limite do Discord:** `Ler Histórico de Mensagens` esconde as mensagens **anteriores**,
+> mas quem está com o canal aberto ainda recebe as mensagens **novas** em tempo real.
+> Não existe, na plataforma, canal “visível porém à prova de leitura”. Se o conteúdo
+> precisar ser realmente privado, negue `ViewChannel` ao `@everyone` — o canal some da lista.
 
 Os overwrites vivem **na categoria**; os canais herdam. Existe um único lugar de verdade
 (`DiscordGuildService.buildCategoryOverwrites`) e `syncPermissions` reaplica quando algo muda.

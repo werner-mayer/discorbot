@@ -15,6 +15,7 @@ const REQUIRED_BOT_PERMISSIONS = [
 // Desejaveis: cada uma que faltar apenas reduz o que o bot consegue conceder
 // nos canais do cla, sem impedir a criacao.
 const DESIRED_PERMISSIONS = {
+  'Ler Histórico de Mensagens': PermissionFlagsBits.ReadMessageHistory,
   'Conectar': PermissionFlagsBits.Connect,
   'Falar': PermissionFlagsBits.Speak,
   'Gerenciar Mensagens': PermissionFlagsBits.ManageMessages,
@@ -65,6 +66,19 @@ export class DiscordGuildService {
     return discordGuild.members.fetch(userId).catch(() => null);
   }
 
+  /**
+   * O discord.js so aceita um overwrite cujo id resolva para um User ou Role
+   * ja em cache. O dono do cla pode nao estar cacheado quando a operacao nao
+   * parte de uma interacao dele (reparo automatico, tarefa de fundo), entao
+   * garantimos a presenca antes de montar os overwrites.
+   */
+  async ensureMembersCached(discordGuild, userIds) {
+    for (const userId of new Set(userIds.filter(Boolean))) {
+      if (discordGuild.members.cache?.has(userId)) continue;
+      await discordGuild.members.fetch(userId).catch(() => null);
+    }
+  }
+
   categoryName(guildName) {
     return truncate(`${this.config.guild.categoryPrefix} ${guildName.toUpperCase()}`, 100);
   }
@@ -101,8 +115,22 @@ export class DiscordGuildService {
 
     const overwrites = [
       {
+        // Todo mundo VE a categoria e os canais do cla, mas nao le nada nem
+        // entra na voz: o cla fica visivel como vitrine, o conteudo e fechado.
         id: discordGuild.roles.everyone.id,
-        deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect],
+        allow: [PermissionFlagsBits.ViewChannel],
+        deny: [
+          PermissionFlagsBits.ReadMessageHistory,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.SendMessagesInThreads,
+          PermissionFlagsBits.CreatePublicThreads,
+          PermissionFlagsBits.CreatePrivateThreads,
+          PermissionFlagsBits.AddReactions,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.Connect,
+          PermissionFlagsBits.Speak,
+        ],
       },
       {
         id: botId,
@@ -154,6 +182,9 @@ export class DiscordGuildService {
     ];
     const moderators = new Set([ownerId, ...officerIds].filter(Boolean));
     for (const userId of moderators) {
+      // Quem saiu do servidor nao resolve para um membro: ignorar em vez de
+      // estourar a criacao inteira do canal.
+      if (!discordGuild.members.cache?.has(userId)) continue;
       overwrites.push({ id: userId, allow: moderatorAllow });
     }
 
@@ -177,6 +208,8 @@ export class DiscordGuildService {
   async syncPermissions(discordGuild, { categoryId, roleId, ownerId, officerIds = [] }) {
     const category = await this.fetchChannel(discordGuild, categoryId, ChannelType.GuildCategory);
     if (!category) return false;
+
+    await this.ensureMembersCached(discordGuild, [ownerId, ...officerIds]);
 
     await category.permissionOverwrites.set(
       this.buildCategoryOverwrites({ discordGuild, roleId, ownerId, officerIds }),
@@ -204,11 +237,12 @@ export class DiscordGuildService {
     });
   }
 
-  createCategory(discordGuild, { name, roleId, ownerId }) {
+  async createCategory(discordGuild, { name, roleId, ownerId, officerIds = [] }) {
+    await this.ensureMembersCached(discordGuild, [ownerId, ...officerIds]);
     return discordGuild.channels.create({
       name: this.categoryName(name),
       type: ChannelType.GuildCategory,
-      permissionOverwrites: this.buildCategoryOverwrites({ discordGuild, roleId, ownerId }),
+      permissionOverwrites: this.buildCategoryOverwrites({ discordGuild, roleId, ownerId, officerIds }),
       reason: `Categoria do clã ${name}`,
     });
   }
