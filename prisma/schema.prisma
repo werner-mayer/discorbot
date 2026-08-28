@@ -1,0 +1,105 @@
+// Banco do sistema de Guildas.
+// Provider padrao: sqlite (zero configuracao). Para PostgreSQL basta trocar
+// provider = "postgresql" e ajustar DATABASE_URL — nenhum codigo muda,
+// pois o acesso a dados fica isolado em src/repositories.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Guild {
+  id             String   @id @default(cuid())
+  discordGuildId String
+  name           String
+  nameNormalized String
+  tag            String
+  tagNormalized  String
+  color          String
+
+  // IDs dos objetos do Discord. Sempre por ID, nunca por nome,
+  // porque nomes podem ser alterados manualmente pelos usuarios.
+  roleId         String
+  categoryId     String
+  textChannelId  String
+  voiceChannelId String
+
+  ownerId        String
+
+  // Campos preparados para features futuras (descricao, logo, limite,
+  // niveis, ranking e pontos). Nao usados pelo MVP.
+  description String?
+  iconUrl     String?
+  memberLimit Int?
+  level       Int     @default(1)
+  points      Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members  GuildMember[]
+  invites  GuildInvite[]
+  auditLogs GuildAuditLog[]
+
+  @@unique([discordGuildId, nameNormalized])
+  @@unique([discordGuildId, tagNormalized])
+  @@index([discordGuildId])
+}
+
+model GuildMember {
+  id             String   @id @default(cuid())
+  guildId        String
+  guild          Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  // Duplicado da guilda para permitir a constraint "1 guilda por usuario
+  // por servidor" diretamente no banco.
+  discordGuildId String
+  discordUserId  String
+
+  // OWNER | OFFICER | MEMBER  (ver src/models/GuildMemberRole.js)
+  role     String   @default("MEMBER")
+  joinedAt DateTime @default(now())
+
+  @@unique([guildId, discordUserId])
+  @@unique([discordGuildId, discordUserId])
+  @@index([discordUserId])
+}
+
+model GuildInvite {
+  id             String   @id @default(cuid())
+  guildId        String
+  guild          Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  discordGuildId String
+
+  inviterId String
+  inviteeId String
+
+  // PENDING | ACCEPTED | DECLINED | EXPIRED | CANCELLED
+  status      String    @default("PENDING")
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+
+  @@index([inviteeId, status])
+  @@index([guildId, status])
+}
+
+model GuildAuditLog {
+  id             String   @id @default(cuid())
+  guildId        String?
+  guild          Guild?   @relation(fields: [guildId], references: [id], onDelete: SetNull)
+  discordGuildId String
+
+  // GUILD_CREATED | MEMBER_JOINED | MEMBER_LEFT | MEMBER_KICKED | ...
+  action    String
+  actorId   String
+  targetId  String?
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  @@index([discordGuildId, createdAt])
+}

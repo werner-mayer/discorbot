@@ -1,0 +1,168 @@
+import config from '../config/index.js';
+import GuildRepository from '../repositories/GuildRepository.js';
+import GuildMemberRepository from '../repositories/GuildMemberRepository.js';
+import DiscordGuildService from './DiscordGuildService.js';
+import GuildService from './GuildService.js';
+import AuditLogService from './AuditLogService.js';
+import { AuditAction } from '../models/AuditAction.js';
+import { GuildMemberRole } from '../models/GuildMemberRole.js';
+import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('GuildMemberService');
+
+/** Entrada, saida e administracao de membros de uma guilda. */
+export class GuildMemberService {
+  constructor({
+    guildRepository = new GuildRepository(),
+    memberRepository = new GuildMemberRepository(),
+    discordGuildService = new DiscordGuildService(),
+    guildService = new GuildService(),
+    auditLogService = new AuditLogService(),
+    configuration = config,
+  } = {}) {
+    this.guilds = guildRepository;
+    this.members = memberRepository;
+    this.discord = discordGuildService;
+    this.guildService = guildService;
+    this.audit = auditLogService;
+    this.config = configuration;
+  }
+
+  async assertCanJoin(discordGuild, guildRecord, userId) {
+    const existing = await this.members.findByUser(discordGuild.id, userId);
+    if (existing) {
+      const sameGuild = existing.guildId === guildRecord.id;
+      throw new ConflictError(
+        sameGuild
+          ? `Você já faz parte da guilda **${guildRecord.name}**.`
+          : `Você já faz parte da guilda **${existing.guild.name}**. Use \`/guild leave\` antes de entrar em outra.`,
+      );
+    }
+
+    const limit = guildRecord.memberLimit ?? this.config.guild.maxMembers;
+    if (limit && limit > 0) {
+      const total = await this.guilds.countMembers(guildRecord.id);
+      if (total >= limit) {
+        throw new ConflictError(`A guilda **${guildRecord.name}** atingiu o limite de ${limit} membros.`);
+      }
+    }
+  }
+
+  /** Adiciona o usuario a guilda: banco + cargo + acesso aos canais. */
+  async addMember(discordGuild, guildRecord, userId, { role = GuildMemberRole.MEMBER, actorId = null } = {}) {
+    await this.assertCanJoin(discordGuild, guildRecord, userId);
+
+    const discordMember = await this.discord.fetchMember(discordGuild, userId);
+    if (!discordMember) throw new NotFoundError('Usuário não encontrado neste servidor.');
+    if (discordMember.user.bot) throw new ValidationError('Bots não podem entrar em guildas.');
+
+    // Garante que cargo/canais ainda existem antes de conceder acesso.
+    const { guild } = await this.guildService.repairGuild(discordGuild, guildRecord, {
+      actorId,
+      reassignRoles: false,
+    });
+
+    const membership = await this.members.create({
+      guildId: guild.id,
+      discordGuildId: discordGuild.id,
+      discordUserId: userId,
+      role,
+    });
+
+    await this.discord.assignRole(discordGuild, userId, guild.roleId, `Entrou na guilda ${guild.name}`);
+    await this.discord.applyTagToNickname(discordGuild, userId, guild.tag);
+
+    await this.audit.record({
+      discordGuildId: discordGuild.id,
+      guildId: guild.id,
+      action: AuditAction.MEMBER_JOINED,
+      actorId: actorId ?? userId,
+      targetId: userId,
+    });
+
+    logger.info(`${userId} entrou na guilda ${guild.name}`);
+    return { guild, membership };
+  }
+
+  /** Remove o usuario da guilda: banco + cargo (perde acesso automaticamente). */
+  async removeMember(discordGuild, guildRecord, userId, { actorId = null, action = AuditAction.MEMBER_LEFT } = {}) {
+    const membership = await this.members.findInGuild(guildRecord.id, userId);
+    if (!membership) throw new NotFoundError('Esse usuário não faz parte desta guilda.');
+
+    if (membership.role === GuildMemberRole.OWNER) {
+      const total = await this.guilds.countMembers(guildRecord.id);
+      throw new ConflictError(
+        total > 1
+          ? 'O líder não pode sair da guilda. Transfira a liderança ou exclua a guilda com `/guild delete`.'
+          : 'Você é o líder e único membro. Use `/guild delete` para encerrar a guilda.',
+      );
+    }
+
+    await this.members.delete(membership.id);
+    await this.discord.removeRole(discordGuild, userId, guildRecord.roleId, `Saiu da guilda ${guildRecord.name}`);
+    await this.discord.clearTagFromNickname(discordGuild, userId, guildRecord.tag);
+
+    await this.audit.record({
+      discordGuildId: discordGuild.id,
+      guildId: guildRecord.id,
+      action,
+      actorId: actorId ?? userId,
+      targetId: userId,
+    });
+
+    logger.info(`${userId} saiu da guilda ${guildRecord.name} (${action})`);
+    return membership;
+  }
+
+  listMembers(guildId) {
+    return this.members.listByGuild(guildId);
+  }
+
+  /**
+   * Muda o cargo interno de um membro (OWNER/OFFICER/MEMBER).
+   * Base para transferencia de lideranca e sub-lideres.
+   */
+  async changeMemberRole(discordGuild, guildRecord, userId, newRole, { actorId = null } = {}) {
+    const membership = await this.members.findInGuild(guildRecord.id, userId);
+    if (!membership) throw new NotFoundError('Esse usuário não faz parte desta guilda.');
+
+    const updated = await this.members.updateRole(membership.id, newRole);
+
+    await this.guildService.repairGuild(discordGuild, guildRecord, { actorId, reassignRoles: false });
+    await this.audit.record({
+      discordGuildId: discordGuild.id,
+      guildId: guildRecord.id,
+      action: AuditAction.MEMBER_ROLE_CHANGED,
+      actorId: actorId ?? userId,
+      targetId: userId,
+      metadata: { from: membership.role, to: newRole },
+    });
+
+    return updated;
+  }
+
+  /** Transfere a lideranca; o lider anterior vira oficial. */
+  async transferOwnership(discordGuild, guildRecord, newOwnerId, { actorId = null } = {}) {
+    const target = await this.members.findInGuild(guildRecord.id, newOwnerId);
+    if (!target) throw new NotFoundError('O novo líder precisa ser membro da guilda.');
+    if (guildRecord.ownerId === newOwnerId) throw new ConflictError('Esse usuário já é o líder da guilda.');
+
+    await this.changeMemberRole(discordGuild, guildRecord, guildRecord.ownerId, GuildMemberRole.OFFICER, { actorId });
+    await this.changeMemberRole(discordGuild, guildRecord, newOwnerId, GuildMemberRole.OWNER, { actorId });
+    const updated = await this.guilds.update(guildRecord.id, { ownerId: newOwnerId });
+
+    await this.guildService.repairGuild(discordGuild, updated, { actorId, reassignRoles: false });
+    await this.audit.record({
+      discordGuildId: discordGuild.id,
+      guildId: guildRecord.id,
+      action: AuditAction.OWNERSHIP_TRANSFERRED,
+      actorId: actorId ?? guildRecord.ownerId,
+      targetId: newOwnerId,
+    });
+
+    return updated;
+  }
+}
+
+export default GuildMemberService;

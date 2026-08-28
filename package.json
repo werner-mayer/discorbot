@@ -1,0 +1,27 @@
+{
+  "name": "discord-guild-bot",
+  "version": "1.0.0",
+  "description": "Bot de Discord para administracao de um sistema de Guildas (cargos, categorias, canais, permissoes e persistencia).",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "deploy:commands": "node src/scripts/deployCommands.js",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "setup": "node src/scripts/setup.js",
+    "test": "DATABASE_URL=\"file:../data/test.db\" prisma db push --skip-generate --accept-data-loss --force-reset >/dev/null && DATABASE_URL=\"file:../data/test.db\" node tests/flow.test.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0"
+  }
+}
