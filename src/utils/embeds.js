@@ -254,3 +254,111 @@ export function settingsEmbed(guildRecord) {
     )
     .setFooter({ text: 'Use /cla edit para alterar textos e limite.' });
 }
+
+
+/**
+ * Guia de comandos. Dividido por quem usa cada coisa, porque a lista corrida
+ * de 20 subcomandos nao ajuda ninguem a comecar.
+ */
+export function helpEmbeds() {
+  const comoFunciona = new EmbedBuilder()
+    .setColor(COLORS.info)
+    .setTitle('⚔️ Como funcionam os clãs')
+    .setDescription(
+      [
+        'Cada clã tem **cargo colorido**, **categoria** e **canais de texto e voz privados**.',
+        'Só quem é do clã enxerga esses canais — a staff do servidor mantém acesso.',
+        '',
+        'Você pode estar em **um clã por vez**.',
+      ].join('\n'),
+    )
+    .addFields(
+      {
+        name: '1️⃣ Criar um clã',
+        value:
+          'Clique em **Criar Clã** no painel e preencha nome, TAG e cor.\n' +
+          'O bot monta cargo, categoria e canais sozinho.',
+      },
+      {
+        name: '2️⃣ Entrar em um clã existente',
+        value:
+          '`/cla join <clã>` — o nome aparece sozinho enquanto você digita.\n' +
+          'Dependendo do clã você entra na hora, manda um pedido, ou precisa de convite.',
+      },
+      {
+        name: '3️⃣ Chamar gente',
+        value: '`/cla invite @usuário` — a pessoa recebe um convite com botões de aceitar e recusar.',
+      },
+    );
+
+  const comandos = new EmbedBuilder()
+    .setColor(COLORS.info)
+    .setTitle('📖 Comandos')
+    .addFields(
+      {
+        name: '👥 Qualquer um',
+        value: [
+          '`/cla join <clã> [mensagem]` — entrar ou pedir entrada',
+          '`/cla info [usuário]` — ver um clã: nível, pontos, membros, guerras',
+          '`/cla ranking` — os clãs com mais pontos',
+          '`/cla war list` — guerras acontecendo',
+          '`/cla help` — este guia',
+        ].join('\n'),
+      },
+      {
+        name: '🛡️ Membros do clã',
+        value: ['`/cla members` — quem está no seu clã', '`/cla leave` — sair do clã'].join('\n'),
+      },
+      {
+        name: '⭐ Líder e oficiais',
+        value: [
+          '`/cla invite @usuário` — convidar',
+          '`/cla requests` — aprovar ou recusar pedidos de entrada',
+          '`/cla kick @usuário` — remover alguém',
+        ].join('\n'),
+      },
+      {
+        name: '👑 Só o líder',
+        value: [
+          '`/cla edit` — descrição, boas-vindas, ícone, limite e cor',
+          '`/cla settings` — quem pode entrar: convite, aprovação ou livre',
+          '`/cla promote @usuário` · `/cla demote @usuário` — oficiais',
+          '`/cla transfer @usuário` — passar a liderança',
+          '`/cla war challenge <clã>` — desafiar outro clã',
+          '`/cla delete` — encerrar o clã',
+        ].join('\n'),
+      },
+    )
+    .setFooter({ text: 'As respostas do bot só aparecem para você.' });
+
+  return [comoFunciona, comandos];
+}
+
+/** Bloco extra do guia, para quem é da staff. */
+export function helpStaffEmbed() {
+  return new EmbedBuilder()
+    .setColor(COLORS.warning)
+    .setTitle('🔧 Comandos da staff')
+    .addFields(
+      {
+        name: 'Administração',
+        value: [
+          '`/cla list` — todos os clãs do servidor',
+          '`/cla logs [limite]` — histórico de tudo que aconteceu',
+          '`/cla panel [canal]` — publicar o painel de criação',
+          '`/cla guide [canal]` — publicar este guia',
+          '`/cla repair todas:true` — recriar cargos e canais apagados na mão',
+        ].join('\n'),
+      },
+      {
+        name: 'Pontuação e guerras',
+        value: [
+          '`/cla points <clã> <valor> [motivo]` — dar ou tirar pontos',
+          '`/cla war report <guerra> <placar>` — registrar o resultado',
+          '`/cla war cancel <guerra>` — cancelar',
+          '',
+          'Quem reporta o placar é a staff, não os clãs envolvidos.',
+        ].join('\n'),
+      },
+    );
+}

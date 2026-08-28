@@ -41,9 +41,11 @@ que o próprio bot não tenha; o bot filtra os bits que não pode conceder para 
 sem as quatro últimas o líder do clã não recebe moderação nos canais dele. No servidor, arraste o cargo do bot
 **acima** dos cargos que ele vai criar — o Discord não deixa um bot gerenciar cargos acima do próprio.
 
-### Publicar o painel
+### Publicar o painel e o guia
 
-No canal `#⚔️┃criar-clã`, rode `/cla panel` (admin). O bot publica o embed com o botão **Criar Clã**.
+No canal `#⚔️┃criar-clã`, rode `/cla panel` (admin) para o embed com o botão **Criar Clã**,
+e `/cla guide` para publicar o guia de comandos para os membros.
+Qualquer pessoa também consulta o guia a qualquer momento com `/cla help` (resposta privada).
 Se `GUILD_CREATION_CHANNEL_ID` estiver configurado, o painel vai direto para lá.
 
 ---
@@ -77,6 +79,7 @@ Se o **banco** falhar depois da estrutura pronta, a estrutura também é desfeit
 
 | Comando | Quem pode | O que faz |
 |---|---|---|
+| `/cla help` | todos | Guia de como funcionam os clãs e lista de comandos |
 | `/cla create` | todos | Abre o modal de criação (mesmo fluxo do botão) |
 | `/cla info [usuario]` | todos | Dados do clã: nível, pontos, ranking, guerras, canais |
 | `/cla members` | membros | Lista os membros e seus papéis |
@@ -100,6 +103,7 @@ Se o **banco** falhar depois da estrutura pronta, a estrutura também é desfeit
 | `/cla repair [todas]` | líder, admin | Recria o que foi apagado manualmente |
 | `/cla panel [canal]` | admin | Publica o painel “Criar Clã” |
 | `/cla list` | admin | Lista todos os clãs do servidor |
+| `/cla guide [canal]` | admin | Publica o guia de comandos num canal |
 | `/cla logs [limite]` | admin | Histórico administrativo do sistema |
 
 As opções `<cla>` e `<guerra>` têm **autocomplete**.

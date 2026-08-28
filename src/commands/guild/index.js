@@ -20,6 +20,8 @@ import war from './war.js';
 import panel from './panel.js';
 import repair from './repair.js';
 import list from './list.js';
+import help from './help.js';
+import guide from './guide.js';
 import autocomplete from './autocomplete.js';
 
 /**
@@ -37,6 +39,7 @@ export const data = new SlashCommandBuilder()
   .setDescription('Sistema de clãs do servidor')
   .setDMPermission(false)
   // ---------------------------------------------------------------- básico
+  .addSubcommand((sub) => sub.setName('help').setDescription('Como funcionam os clãs e lista de comandos'))
   .addSubcommand((sub) => sub.setName('create').setDescription('Criar um novo clã'))
   .addSubcommand((sub) =>
     sub
@@ -169,6 +172,18 @@ export const data = new SlashCommandBuilder()
   .addSubcommand((sub) => sub.setName('list').setDescription('Listar todos os clãs do servidor (admin)'))
   .addSubcommand((sub) =>
     sub
+      .setName('guide')
+      .setDescription('Publicar o guia de comandos num canal (admin)')
+      .addChannelOption((option) =>
+        option
+          .setName('canal')
+          .setDescription('Canal onde o guia será publicado')
+          .addChannelTypes(ChannelType.GuildText)
+          .setRequired(false),
+      ),
+  )
+  .addSubcommand((sub) =>
+    sub
       .setName('logs')
       .setDescription('Histórico administrativo do sistema (admin)')
       .addIntegerOption((option) =>
@@ -177,6 +192,8 @@ export const data = new SlashCommandBuilder()
   );
 
 const subcommands = {
+  help,
+  guide,
   create,
   info,
   invite,
