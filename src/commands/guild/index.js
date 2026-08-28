@@ -95,7 +95,18 @@ export const data = new SlashCommandBuilder()
   )
   .addSubcommand((sub) => sub.setName('edit').setDescription('Editar descrição, ícone, limite e cor'))
   .addSubcommand((sub) => sub.setName('settings').setDescription('Configurar quem pode entrar no clã'))
-  .addSubcommand((sub) => sub.setName('delete').setDescription('Excluir o seu clã (líder ou admin)'))
+  .addSubcommand((sub) =>
+    sub
+      .setName('delete')
+      .setDescription('Excluir um clã (líder do próprio, admin de qualquer um)')
+      .addStringOption((option) =>
+        option
+          .setName('cla')
+          .setDescription('Qual clã apagar (padrão: o seu) — admin')
+          .setAutocomplete(true)
+          .setRequired(false),
+      ),
+  )
   // ------------------------------------------------------------- progressão
   .addSubcommand((sub) =>
     sub

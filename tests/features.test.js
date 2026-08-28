@@ -22,7 +22,7 @@ const { guildService, memberService, settingsService, joinRequestService, rankin
 
 const DG = '7777';
 const dg = createMockGuild(DG);
-for (const id of ['lider', 'oficial', 'membro', 'forasteiro', 'lider2']) dg.addUser(id);
+for (const id of ['lider', 'oficial', 'membro', 'forasteiro', 'lider2', 'lider2x']) dg.addUser(id);
 
 await prisma.guildWar.deleteMany({});
 await prisma.guildJoinRequest.deleteMany({});
@@ -261,6 +261,31 @@ await test('busca de clas por nome e por TAG', async () => {
   assert.equal((await guildService.searchGuilds(DG, 'lob'))[0].tag, 'LBS');
   assert.equal((await guildService.searchGuilds(DG, 'crv'))[0].name, 'Corvos');
   assert.equal((await guildService.searchGuilds(DG, '')).length, 2);
+});
+
+await test('admin apaga o clã de outra pessoa; líder de fora nao', async () => {
+  const admin = dg.addUser('staff', { admin: true });
+  const alvo = await guildService.createGuild(dg, 'lider2x', { name: 'Alvos', tag: 'ALV', color: '#123123' });
+
+  // o líder de outro clã nao pode apagar este
+  assert.equal(services.permissionService.canDeleteGuild(alvo, dg.members.store.get('lider')), false);
+  // o admin do servidor pode
+  assert.equal(services.permissionService.canDeleteGuild(alvo, admin), true);
+  // e o proprio dono tambem
+  assert.equal(services.permissionService.canDeleteGuild(alvo, dg.members.store.get('lider2x')), true);
+
+  const roleId = alvo.roleId;
+  await guildService.deleteGuild(dg, alvo, 'staff');
+  assert.equal(dg.roles.store.has(roleId), false, 'cargo apagado');
+  assert.equal(await prisma.guild.count({ where: { id: alvo.id } }), 0, 'registro apagado');
+});
+
+await test('resolve o clã pelo termo do autocomplete (TAG ou nome)', async () => {
+  const porTag = await joinRequestService.resolveGuild(DG, 'LBS');
+  const porNome = await joinRequestService.resolveGuild(DG, 'corvo');
+  assert.equal(porTag.name, 'Lobos');
+  assert.equal(porNome.tag, 'CRV');
+  await assert.rejects(() => joinRequestService.resolveGuild(DG, 'nao-existe'), (e) => /Nenhum clã encontrado/.test(e.message));
 });
 
 console.log(`\n✓ ${ok.length} passaram`);

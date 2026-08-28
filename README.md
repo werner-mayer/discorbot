@@ -93,7 +93,7 @@ Se o **banco** falhar depois da estrutura pronta, a estrutura também é desfeit
 | `/cla transfer @usuario` | líder, admin | Passa a liderança (o antigo líder vira oficial) |
 | `/cla edit` | líder, admin | Modal: descrição, boas-vindas, ícone, limite e cor |
 | `/cla settings` | líder, admin | Escolhe a política de entrada no menu |
-| `/cla delete` | líder, admin | Apaga cargo, categoria, canais e registros |
+| `/cla delete [cla]` | líder (o próprio), admin (qualquer um) | Apaga cargo, categoria, canais e registros |
 | `/cla ranking [limite]` | todos | Clãs ordenados por pontos |
 | `/cla points <cla> <valor> [motivo]` | admin | Dá ou tira pontos (autocomplete de clãs) |
 | `/cla war challenge <cla> [pontos]` | líder, admin | Desafia outro clã |
@@ -107,6 +107,10 @@ Se o **banco** falhar depois da estrutura pronta, a estrutura também é desfeit
 | `/cla logs [limite]` | admin | Histórico administrativo do sistema |
 
 As opções `<cla>` e `<guerra>` têm **autocomplete**.
+
+`/cla delete` sem argumento apaga o clã de quem chamou. Passando `cla:`, a permissão decide:
+o líder só apaga o próprio clã, um administrador apaga qualquer um — útil para limpar clãs
+abandonados sem precisar entrar neles.
 
 Botões: `Criar Clã`, `Confirmar`/`Cancelar`, `Aceitar`/`Recusar` convite, confirmações de saída e exclusão.
 
