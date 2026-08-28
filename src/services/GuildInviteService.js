@@ -31,21 +31,21 @@ export class GuildInviteService {
 
     const invitee = await this.discord.fetchMember(discordGuild, inviteeId);
     if (!invitee) throw new NotFoundError('Usuário não encontrado neste servidor.');
-    if (invitee.user.bot) throw new ValidationError('Bots não podem entrar em guildas.');
+    if (invitee.user.bot) throw new ValidationError('Bots não podem entrar em clãs.');
 
     const existingMembership = await this.members.findByUser(discordGuild.id, inviteeId);
     if (existingMembership) {
       throw new ConflictError(
         existingMembership.guildId === guildRecord.id
-          ? `${invitee.user.username} já faz parte da sua guilda.`
-          : `${invitee.user.username} já faz parte da guilda **${existingMembership.guild.name}**.`,
+          ? `${invitee.user.username} já faz parte do seu clã.`
+          : `${invitee.user.username} já faz parte do clã **${existingMembership.guild.name}**.`,
       );
     }
 
     const pending = await this.invites.findPending(guildRecord.id, inviteeId);
     if (pending) {
       if (pending.expiresAt > new Date()) {
-        throw new ConflictError(`${invitee.user.username} já possui um convite pendente para esta guilda.`);
+        throw new ConflictError(`${invitee.user.username} já possui um convite pendente para este clã.`);
       }
       await this.invites.updateStatus(pending.id, InviteStatus.EXPIRED);
     }
@@ -83,7 +83,7 @@ export class GuildInviteService {
       await this.invites.updateStatus(invite.id, InviteStatus.EXPIRED);
       throw new ConflictError('Este convite expirou.');
     }
-    if (!invite.guild) throw new NotFoundError('Essa guilda não existe mais.');
+    if (!invite.guild) throw new NotFoundError('Esse clã não existe mais.');
 
     return invite;
   }
@@ -94,7 +94,7 @@ export class GuildInviteService {
       actorId: invite.inviterId,
     });
     await this.invites.updateStatus(invite.id, InviteStatus.ACCEPTED);
-    // Demais convites pendentes perdem o sentido: 1 guilda por usuario.
+    // Demais convites pendentes perdem o sentido: 1 clã por usuario.
     await this.invites.expirePendingFor(userId);
     return result;
   }

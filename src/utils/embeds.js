@@ -25,28 +25,28 @@ export function infoEmbed(title, description) {
   return new EmbedBuilder().setColor(COLORS.info).setTitle(title).setDescription(description ?? null);
 }
 
-/** Painel fixo do canal #create-guild. */
+/** Painel fixo do canal de criação de clãs. */
 export function creationPanelEmbed() {
   return new EmbedBuilder()
     .setColor(COLORS.info)
-    .setTitle('🏰 Sistema de Guildas')
+    .setTitle('⚔️ Sistema de Clãs')
     .setDescription(
       [
-        'Crie sua própria guilda com cargo, categoria e canais privados.',
+        'Crie seu próprio clã com cargo, categoria e canais privados.',
         '',
         'Ao clicar no botão abaixo você informa:',
         '**Nome**, **TAG**, **Cor** e (opcionalmente) os nomes dos canais.',
         '',
-        'Cada usuário pode participar de **uma guilda por vez**.',
+        'Cada usuário pode participar de **um clã por vez**.',
       ].join('\n'),
     )
-    .setFooter({ text: 'Use /guild info para ver os dados da sua guilda.' });
+    .setFooter({ text: 'Use /cla info para ver os dados do seu clã.' });
 }
 
 export function confirmationEmbed(draft) {
   return new EmbedBuilder()
     .setColor(colorToInt(draft.color))
-    .setTitle('Criar guilda?')
+    .setTitle('Criar clã?')
     .addFields(
       { name: 'Nome', value: draft.name, inline: true },
       { name: 'Tag', value: `[${draft.tag}]`, inline: true },
@@ -70,7 +70,7 @@ export function guildInfoEmbed(guildRecord, { memberCount, members = [] }) {
       { name: 'Texto', value: `<#${guildRecord.textChannelId}>`, inline: true },
       { name: 'Voz', value: `<#${guildRecord.voiceChannelId}>`, inline: true },
     )
-    .setFooter({ text: `Criada em ${guildRecord.createdAt.toLocaleDateString('pt-BR')}` });
+    .setFooter({ text: `Criado em ${guildRecord.createdAt.toLocaleDateString('pt-BR')}` });
 
   if (guildRecord.description) embed.setDescription(guildRecord.description);
   if (guildRecord.iconUrl) embed.setThumbnail(guildRecord.iconUrl);
@@ -104,8 +104,8 @@ export function membersEmbed(guildRecord, members) {
 export function inviteEmbed(guildRecord, inviterId) {
   return new EmbedBuilder()
     .setColor(colorToInt(guildRecord.color))
-    .setTitle('📨 Convite de guilda')
+    .setTitle('📨 Convite de clã')
     .setDescription(
-      `Você foi convidado por <@${inviterId}> para entrar na guilda **${guildRecord.name}** [${guildRecord.tag}].`,
+      `Você foi convidado por <@${inviterId}> para entrar no clã **${guildRecord.name}** [${guildRecord.tag}].`,
     );
 }

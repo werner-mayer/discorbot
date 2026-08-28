@@ -1,7 +1,7 @@
 import { successEmbed } from '../../utils/embeds.js';
 import { deferEphemeral, replyEphemeral } from '../../utils/interactionReply.js';
 
-/** /guild transfer @usuario — passa a liderança para outro membro. */
+/** /cla transfer @usuario — passa a liderança para outro membro. */
 export default async function transfer(interaction, { services }) {
   const target = interaction.options.getUser('usuario', true);
   await deferEphemeral(interaction);

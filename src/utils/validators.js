@@ -13,16 +13,16 @@ export function validateGuildName(input) {
 
   if (name.length < nameMinLength || name.length > nameMaxLength) {
     throw new ValidationError(
-      `O nome da guilda deve ter entre ${nameMinLength} e ${nameMaxLength} caracteres.`,
+      `O nome do clã deve ter entre ${nameMinLength} e ${nameMaxLength} caracteres.`,
     );
   }
   if (!NAME_PATTERN.test(name)) {
     throw new ValidationError(
-      'O nome da guilda contém caracteres inválidos. Use apenas letras, números, espaços e `-` `_` `.`',
+      'O nome do clã contém caracteres inválidos. Use apenas letras, números, espaços e `-` `_` `.`',
     );
   }
   if (FORBIDDEN_WORDS.includes(normalize(name))) {
-    throw new ValidationError('Esse nome de guilda não é permitido.');
+    throw new ValidationError('Esse nome de clã não é permitido.');
   }
   return name;
 }

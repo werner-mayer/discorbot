@@ -1,5 +1,5 @@
 /**
- * Teste de ponta a ponta dos fluxos do sistema de guildas.
+ * Teste de ponta a ponta dos fluxos do sistema de clãs.
  * Usa um mock da API do Discord (tests/mocks/discord.js) e um SQLite proprio,
  * entao roda sem token e sem servidor real.  ->  npm test
  */
@@ -40,7 +40,7 @@ const test = async (name, fn) => {
 
 let guild;
 
-await test('cria guilda com cargo, categoria e canais', async () => {
+await test('cria clã com cargo, categoria e canais', async () => {
   guild = await guildService.createGuild(discordGuild, 'owner-1', {
     name: 'Dragons', tag: 'drg', color: '#f00', textChannelName: 'Chat Geral', voiceChannelName: '🔊・voz',
   });
@@ -52,7 +52,7 @@ await test('cria guilda com cargo, categoria e canais', async () => {
   assert.equal(role.color, '#FF0000');
   assert.equal(role.hoist, true);
   const cat = await discordGuild.channels.fetch(guild.categoryId);
-  assert.equal(cat.name, '🏰 GUILD - DRAGONS');
+  assert.equal(cat.name, '⚔️ CLÃ - DRAGONS');
   const text = await discordGuild.channels.fetch(guild.textChannelId);
   assert.equal(text.name, 'chat-geral');
   assert.equal(text.parentId, cat.id);
@@ -66,7 +66,7 @@ await test('criador recebe o cargo e vira OWNER', async () => {
   assert.equal(m.role, 'OWNER');
 });
 
-await test('permissoes: everyone negado, cargo da guilda liberado', async () => {
+await test('permissoes: everyone negado, cargo da clã liberado', async () => {
   const cat = await discordGuild.channels.fetch(guild.categoryId);
   const everyone = cat.overwrites.find((o) => o.id === 'everyone-role');
   assert.ok(everyone.deny.length > 0);
@@ -79,7 +79,7 @@ await test('permissoes: everyone negado, cargo da guilda liberado', async () => 
 await test('rejeita nome duplicado', async () => {
   await assert.rejects(
     () => guildService.createGuild(discordGuild, 'member-3', { name: 'dragons', tag: 'XPT', color: '#00FF00' }),
-    (e) => e instanceof AppError && /Já existe uma guilda/.test(e.message),
+    (e) => e instanceof AppError && /Já existe um clã/.test(e.message),
   );
 });
 
@@ -97,7 +97,7 @@ await test('rejeita cor invalida', async () => {
   );
 });
 
-await test('rejeita segunda guilda para o mesmo usuario', async () => {
+await test('rejeita segunda clã para o mesmo usuario', async () => {
   await assert.rejects(
     () => guildService.createGuild(discordGuild, 'owner-1', { name: 'Segunda', tag: 'SEG', color: '#0000FF' }),
     (e) => /já faz parte/.test(e.message),

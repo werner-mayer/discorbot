@@ -27,6 +27,6 @@ export default {
       }
     }
 
-    logger.info(`Pronto para administrar guildas em "${discordGuild.name}".`);
+    logger.info(`Pronto para administrar clãs em "${discordGuild.name}".`);
   },
 };

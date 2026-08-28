@@ -59,13 +59,13 @@ export class GuildPermissionService {
 
   assertCanEditGuild(guildRecord, discordMember) {
     if (!this.canEditGuild(guildRecord, discordMember)) {
-      throw new PermissionError('Apenas o líder da guilda ou um administrador pode fazer isso.');
+      throw new PermissionError('Apenas o líder do clã ou um administrador pode fazer isso.');
     }
   }
 
   assertCanDeleteGuild(guildRecord, discordMember) {
     if (!this.canDeleteGuild(guildRecord, discordMember)) {
-      throw new PermissionError('Apenas o líder da guilda ou um administrador pode excluí-la.');
+      throw new PermissionError('Apenas o líder do clã ou um administrador pode excluí-lo.');
     }
   }
 }

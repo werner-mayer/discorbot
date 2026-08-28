@@ -11,7 +11,7 @@ import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('GuildMemberService');
 
-/** Entrada, saida e administracao de membros de uma guilda. */
+/** Entrada, saida e administracao de membros de um clã. */
 export class GuildMemberService {
   constructor({
     guildRepository = new GuildRepository(),
@@ -35,8 +35,8 @@ export class GuildMemberService {
       const sameGuild = existing.guildId === guildRecord.id;
       throw new ConflictError(
         sameGuild
-          ? `Você já faz parte da guilda **${guildRecord.name}**.`
-          : `Você já faz parte da guilda **${existing.guild.name}**. Use \`/guild leave\` antes de entrar em outra.`,
+          ? `Você já faz parte do clã **${guildRecord.name}**.`
+          : `Você já faz parte do clã **${existing.guild.name}**. Use \`/cla leave\` antes de entrar em outra.`,
       );
     }
 
@@ -44,18 +44,18 @@ export class GuildMemberService {
     if (limit && limit > 0) {
       const total = await this.guilds.countMembers(guildRecord.id);
       if (total >= limit) {
-        throw new ConflictError(`A guilda **${guildRecord.name}** atingiu o limite de ${limit} membros.`);
+        throw new ConflictError(`O clã **${guildRecord.name}** atingiu o limite de ${limit} membros.`);
       }
     }
   }
 
-  /** Adiciona o usuario a guilda: banco + cargo + acesso aos canais. */
+  /** Adiciona o usuario o clã: banco + cargo + acesso aos canais. */
   async addMember(discordGuild, guildRecord, userId, { role = GuildMemberRole.MEMBER, actorId = null } = {}) {
     await this.assertCanJoin(discordGuild, guildRecord, userId);
 
     const discordMember = await this.discord.fetchMember(discordGuild, userId);
     if (!discordMember) throw new NotFoundError('Usuário não encontrado neste servidor.');
-    if (discordMember.user.bot) throw new ValidationError('Bots não podem entrar em guildas.');
+    if (discordMember.user.bot) throw new ValidationError('Bots não podem entrar em clãs.');
 
     // Garante que cargo/canais ainda existem antes de conceder acesso.
     const { guild } = await this.guildService.repairGuild(discordGuild, guildRecord, {
@@ -70,7 +70,7 @@ export class GuildMemberService {
       role,
     });
 
-    await this.discord.assignRole(discordGuild, userId, guild.roleId, `Entrou na guilda ${guild.name}`);
+    await this.discord.assignRole(discordGuild, userId, guild.roleId, `Entrou no clã ${guild.name}`);
     await this.discord.applyTagToNickname(discordGuild, userId, guild.tag);
 
     await this.audit.record({
@@ -81,26 +81,26 @@ export class GuildMemberService {
       targetId: userId,
     });
 
-    logger.info(`${userId} entrou na guilda ${guild.name}`);
+    logger.info(`${userId} entrou no clã ${guild.name}`);
     return { guild, membership };
   }
 
-  /** Remove o usuario da guilda: banco + cargo (perde acesso automaticamente). */
+  /** Remove o usuario do clã: banco + cargo (perde acesso automaticamente). */
   async removeMember(discordGuild, guildRecord, userId, { actorId = null, action = AuditAction.MEMBER_LEFT } = {}) {
     const membership = await this.members.findInGuild(guildRecord.id, userId);
-    if (!membership) throw new NotFoundError('Esse usuário não faz parte desta guilda.');
+    if (!membership) throw new NotFoundError('Esse usuário não faz parte deste clã.');
 
     if (membership.role === GuildMemberRole.OWNER) {
       const total = await this.guilds.countMembers(guildRecord.id);
       throw new ConflictError(
         total > 1
-          ? 'O líder não pode sair da guilda. Transfira a liderança ou exclua a guilda com `/guild delete`.'
-          : 'Você é o líder e único membro. Use `/guild delete` para encerrar a guilda.',
+          ? 'O líder não pode sair do clã. Transfira a liderança ou exclua o clã com `/cla delete`.'
+          : 'Você é o líder e único membro. Use `/cla delete` para encerrar o clã.',
       );
     }
 
     await this.members.delete(membership.id);
-    await this.discord.removeRole(discordGuild, userId, guildRecord.roleId, `Saiu da guilda ${guildRecord.name}`);
+    await this.discord.removeRole(discordGuild, userId, guildRecord.roleId, `Saiu do clã ${guildRecord.name}`);
     await this.discord.clearTagFromNickname(discordGuild, userId, guildRecord.tag);
 
     await this.audit.record({
@@ -111,7 +111,7 @@ export class GuildMemberService {
       targetId: userId,
     });
 
-    logger.info(`${userId} saiu da guilda ${guildRecord.name} (${action})`);
+    logger.info(`${userId} saiu do clã ${guildRecord.name} (${action})`);
     return membership;
   }
 
@@ -125,7 +125,7 @@ export class GuildMemberService {
    */
   async changeMemberRole(discordGuild, guildRecord, userId, newRole, { actorId = null } = {}) {
     const membership = await this.members.findInGuild(guildRecord.id, userId);
-    if (!membership) throw new NotFoundError('Esse usuário não faz parte desta guilda.');
+    if (!membership) throw new NotFoundError('Esse usuário não faz parte deste clã.');
 
     const updated = await this.members.updateRole(membership.id, newRole);
 
@@ -145,8 +145,8 @@ export class GuildMemberService {
   /** Transfere a lideranca; o lider anterior vira oficial. */
   async transferOwnership(discordGuild, guildRecord, newOwnerId, { actorId = null } = {}) {
     const target = await this.members.findInGuild(guildRecord.id, newOwnerId);
-    if (!target) throw new NotFoundError('O novo líder precisa ser membro da guilda.');
-    if (guildRecord.ownerId === newOwnerId) throw new ConflictError('Esse usuário já é o líder da guilda.');
+    if (!target) throw new NotFoundError('O novo líder precisa ser membro do clã.');
+    if (guildRecord.ownerId === newOwnerId) throw new ConflictError('Esse usuário já é o líder do clã.');
 
     await this.changeMemberRole(discordGuild, guildRecord, guildRecord.ownerId, GuildMemberRole.OFFICER, { actorId });
     await this.changeMemberRole(discordGuild, guildRecord, newOwnerId, GuildMemberRole.OWNER, { actorId });

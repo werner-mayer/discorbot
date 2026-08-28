@@ -9,7 +9,7 @@ export class GuildMemberRepository {
     return this.db.guildMember.create({ data });
   }
 
-  /** Membro do usuario dentro do servidor (regra: 1 guilda por usuario). */
+  /** Membro do usuario dentro do servidor (regra: 1 clã por usuario). */
   findByUser(discordGuildId, discordUserId) {
     return this.db.guildMember.findUnique({
       where: { discordGuildId_discordUserId: { discordGuildId, discordUserId } },

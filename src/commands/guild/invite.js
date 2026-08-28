@@ -2,7 +2,7 @@ import { inviteEmbed, successEmbed, warningEmbed } from '../../utils/embeds.js';
 import { inviteRow } from '../../interactions/components.js';
 import { deferEphemeral, replyEphemeral } from '../../utils/interactionReply.js';
 
-/** /guild invite @usuario */
+/** /cla invite @usuario */
 export default async function invite(interaction, { services }) {
   const target = interaction.options.getUser('usuario', true);
   await deferEphemeral(interaction);

@@ -56,7 +56,7 @@ export const config = {
     nameMaxLength: number('GUILD_NAME_MAX_LENGTH', 32),
     tagMinLength: number('GUILD_TAG_MIN_LENGTH', 2),
     tagMaxLength: number('GUILD_TAG_MAX_LENGTH', 5),
-    categoryPrefix: optional('GUILD_CATEGORY_PREFIX', '🏰 GUILD -'),
+    categoryPrefix: optional('GUILD_CATEGORY_PREFIX', '⚔️ CLÃ -'),
     defaultTextChannelName: optional('GUILD_DEFAULT_TEXT_CHANNEL', '💬・chat'),
     defaultVoiceChannelName: optional('GUILD_DEFAULT_VOICE_CHANNEL', '🔊・voz'),
     allowCustomChannelNames: boolean('GUILD_ALLOW_CUSTOM_CHANNEL_NAMES', true),
@@ -64,7 +64,7 @@ export const config = {
     roleMentionable: boolean('GUILD_ROLE_MENTIONABLE', true),
     applyTagToNickname: boolean('GUILD_APPLY_TAG_TO_NICKNAME', false),
     inviteExpirationMinutes: number('GUILD_INVITE_EXPIRATION_MINUTES', 1440),
-    // 0 = sem limite. Preparado para a feature futura de limite por guilda.
+    // 0 = sem limite. Preparado para a feature futura de limite por clã.
     maxMembers: number('GUILD_MAX_MEMBERS', 0),
     draftTtlMinutes: number('GUILD_DRAFT_TTL_MINUTES', 10),
   },

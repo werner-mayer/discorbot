@@ -4,7 +4,7 @@ import { creationPanelEmbed, errorEmbed, successEmbed } from '../../utils/embeds
 import { createGuildButtonRow } from '../../interactions/components.js';
 import { replyEphemeral } from '../../utils/interactionReply.js';
 
-/** /guild panel — publica o painel "Criar Guilda" (somente administradores). */
+/** /cla panel — publica o painel "Criar Clã" (somente administradores). */
 export default async function panel(interaction, { services }) {
   services.permissionService.assertServerAdmin(interaction.member);
 

@@ -197,32 +197,32 @@ async function main() {
 
   if (rolesAbove.length) {
     warn(
-      `Existem ${rolesAbove.length} cargo(s) acima do cargo do bot. Os cargos das guildas nascem\n` +
+      `Existem ${rolesAbove.length} cargo(s) acima do cargo do bot. Os cargos dos clãs nascem\n` +
         '  logo abaixo do bot — arraste o cargo dele para o topo em Configurações do Servidor → Cargos\n' +
-        '  se quiser que as guildas apareçam acima dos cargos comuns.',
+        '  se quiser que os clãs apareçam acima dos cargos comuns.',
     );
   } else {
     ok('O cargo do bot está no topo da hierarquia.');
   }
 
   // ----------------------------------------------------------------- canal
-  step('4/7', 'Canal de criação de guildas');
+  step('4/7', 'Canal de criação de clãs');
   const channels = await api(`/guilds/${server.id}/channels`);
   const textChannels = channels.filter((channel) => channel.type === 0);
   let creationChannel =
     textChannels.find((channel) => channel.id === currentValue(env, 'GUILD_CREATION_CHANNEL_ID')) ??
-    textChannels.find((channel) => /create-?guild|criar-?guilda/i.test(channel.name));
+    textChannels.find((channel) => /create-?guild|criar-?clã/i.test(channel.name));
 
   if (creationChannel) {
     ok(`Canal encontrado: #${creationChannel.name} (${creationChannel.id})`);
   } else if (await confirm('Não achei um #create-guild. Crio o canal agora?')) {
     creationChannel = await api(`/guilds/${server.id}/channels`, {
       method: 'POST',
-      body: JSON.stringify({ name: 'create-guild', type: 0, topic: 'Crie e administre sua guilda por aqui.' }),
+      body: JSON.stringify({ name: 'create-guild', type: 0, topic: 'Crie e administre seu clã por aqui.' }),
     });
     ok(`Canal #${creationChannel.name} criado (${creationChannel.id})`);
   } else {
-    warn('Sem canal fixo: `/guild panel` publicará o painel no canal onde for executado.');
+    warn('Sem canal fixo: `/cla panel` publicará o painel no canal onde for executado.');
   }
 
   // ------------------------------------------------------------ admin role
@@ -240,7 +240,7 @@ async function main() {
   } else if (staffRoles.length && interactive) {
     console.log('\nCargos com poder administrativo no servidor:');
     staffRoles.forEach((role, i) => console.log(`  ${c.bold}${i + 1}${c.reset}. ${role.name} ${c.dim}(${role.id})${c.reset}`));
-    const answer = await ask('\nQuais devem administrar as guildas? (números separados por vírgula, Enter para pular) ');
+    const answer = await ask('\nQuais devem administrar os clãs? (números separados por vírgula, Enter para pular) ');
     adminRoleIds = answer
       .split(',')
       .map((index) => staffRoles[Number(index.trim()) - 1]?.id)
@@ -283,7 +283,7 @@ async function main() {
     });
     ok(`Painel publicado em #${creationChannel.name}.`);
   } else {
-    warn('Painel não publicado. Rode `/guild panel` no Discord quando quiser.');
+    warn('Painel não publicado. Rode `/cla panel` no Discord quando quiser.');
   }
 
   console.log(

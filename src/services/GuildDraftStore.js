@@ -4,7 +4,7 @@ import config from '../config/index.js';
  * Guarda temporariamente os dados do modal enquanto o usuario confirma a
  * criacao (o customId de um botao nao comporta todos os campos).
  * Em memoria de proposito: e um rascunho descartavel. Se o bot reiniciar,
- * o usuario apenas clica em "Criar Guilda" de novo.
+ * o usuario apenas clica em "Criar Clã" de novo.
  */
 export class GuildDraftStore {
   constructor({ ttlMinutes = config.guild.draftTtlMinutes } = {}) {

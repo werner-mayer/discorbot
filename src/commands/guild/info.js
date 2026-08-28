@@ -1,7 +1,7 @@
 import { guildInfoEmbed } from '../../utils/embeds.js';
 import { replyEphemeral } from '../../utils/interactionReply.js';
 
-/** /guild info — dados da guilda do usuario (ou da guilda de outro membro). */
+/** /cla info — dados do clã do usuario (ou do clã de outro membro). */
 export default async function info(interaction, { services }) {
   const target = interaction.options.getUser('usuario') ?? interaction.user;
   const { guild } = await services.guildService.requireUserGuild(interaction.guild.id, target.id);

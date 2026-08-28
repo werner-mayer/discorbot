@@ -9,9 +9,9 @@ const logger = createLogger('guildMemberRemove');
 const memberRepository = new GuildMemberRepository();
 
 /**
- * Quem sai do servidor deixa de contar como membro da guilda.
- * O lider e mantido no banco para nao "orfanizar" a guilda — um admin decide
- * se transfere a lideranca ou exclui a guilda.
+ * Quem sai do servidor deixa de contar como membro do clã.
+ * O lider e mantido no banco para nao "orfanizar" o clã — um admin decide
+ * se transfere a lideranca ou exclui o clã.
  */
 export default {
   name: Events.GuildMemberRemove,
@@ -22,7 +22,7 @@ export default {
 
       if (membership.role === GuildMemberRole.OWNER) {
         logger.warn(
-          `Líder da guilda ${membership.guild.name} saiu do servidor. Registro mantido para revisão de um admin.`,
+          `Líder do clã ${membership.guild.name} saiu do servidor. Registro mantido para revisão de um admin.`,
         );
         return;
       }
@@ -36,7 +36,7 @@ export default {
         targetId: member.id,
         metadata: { reason: 'saiu do servidor' },
       });
-      logger.info(`${member.id} removido da guilda ${membership.guild.name} (saiu do servidor).`);
+      logger.info(`${member.id} removido do clã ${membership.guild.name} (saiu do servidor).`);
     } catch (error) {
       logger.error('Falha ao sincronizar saída de membro', error?.message);
     }

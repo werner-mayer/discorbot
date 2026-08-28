@@ -13,8 +13,8 @@ export function createGuildButtonRow() {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(CustomId.CREATE_BUTTON)
-      .setLabel('Criar Guilda')
-      .setEmoji('🏰')
+      .setLabel('Criar Clã')
+      .setEmoji('⚔️')
       .setStyle(ButtonStyle.Success),
   );
 }
@@ -26,7 +26,7 @@ export function createGuildModal() {
   const rows = [
     new TextInputBuilder()
       .setCustomId('name')
-      .setLabel('Nome da guilda')
+      .setLabel('Nome do clã')
       .setPlaceholder('Dragons')
       .setStyle(TextInputStyle.Short)
       .setMinLength(guild.nameMinLength)
@@ -70,7 +70,7 @@ export function createGuildModal() {
 
   return new ModalBuilder()
     .setCustomId(CustomId.CREATE_MODAL)
-    .setTitle('Criar guilda')
+    .setTitle('Criar clã')
     .addComponents(rows.map((input) => new ActionRowBuilder().addComponents(input)));
 }
 

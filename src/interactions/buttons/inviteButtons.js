@@ -9,7 +9,7 @@ import { NotFoundError } from '../../utils/errors.js';
  */
 async function resolveDiscordGuild(interaction, discordGuildId) {
   const discordGuild = await interaction.client.guilds.fetch(discordGuildId).catch(() => null);
-  if (!discordGuild) throw new NotFoundError('Não consegui acessar o servidor desta guilda.');
+  if (!discordGuild) throw new NotFoundError('Não consegui acessar o servidor deste clã.');
   return discordGuild;
 }
 
@@ -26,8 +26,8 @@ export const acceptInviteButton = {
     return replyEphemeral(interaction, {
       embeds: [
         successEmbed(
-          `Bem-vindo à guilda ${guild.name} [${guild.tag}]!`,
-          `Você recebeu o cargo da guilda e já tem acesso a <#${guild.textChannelId}> e ao canal de voz.`,
+          `Bem-vindo ao clã ${guild.name} [${guild.tag}]!`,
+          `Você recebeu o cargo do clã e já tem acesso a <#${guild.textChannelId}> e ao canal de voz.`,
         ),
       ],
       components: [],

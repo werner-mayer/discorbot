@@ -2,8 +2,8 @@ import { successEmbed, warningEmbed } from '../../utils/embeds.js';
 import { deferEphemeral, replyEphemeral } from '../../utils/interactionReply.js';
 
 /**
- * /guild repair — recria cargo/categoria/canais apagados manualmente e
- * reaplica cargos e permissoes. Lider da guilda ou administrador.
+ * /cla repair — recria cargo/categoria/canais apagados manualmente e
+ * reaplica cargos e permissoes. Lider do clã ou administrador.
  */
 export default async function repair(interaction, { services }) {
   await deferEphemeral(interaction);
@@ -22,7 +22,7 @@ export default async function repair(interaction, { services }) {
       report.push(`**${guildRecord.name}** — ${repaired.length ? repaired.join(', ') : 'ok'}`);
     }
     return replyEphemeral(interaction, {
-      embeds: [successEmbed('Verificação concluída', report.join('\n') || 'Nenhuma guilda cadastrada.')],
+      embeds: [successEmbed('Verificação concluída', report.join('\n') || 'Nenhum clã cadastrado.')],
     });
   }
 

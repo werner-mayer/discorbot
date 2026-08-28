@@ -3,7 +3,7 @@ import { successEmbed } from '../../utils/embeds.js';
 import { deferEphemeral, replyEphemeral } from '../../utils/interactionReply.js';
 import { AuditAction } from '../../models/AuditAction.js';
 
-/** Confirmacao de exclusao da guilda (customId: guild:delete-confirm:<guildId>). */
+/** Confirmacao de exclusao do clã (customId: guild:delete-confirm:<guildId>). */
 export const deleteGuildButton = {
   customId: CustomId.DELETE_CONFIRM,
   async execute(interaction, { args, services }) {
@@ -22,7 +22,7 @@ export const deleteGuildButton = {
     return replyEphemeral(interaction, {
       embeds: [
         successEmbed(
-          `Guilda ${guildRecord.name} excluída`,
+          `Clã ${guildRecord.name} excluída`,
           `Cargo, categoria e canais removidos. ${removedMembers} membro(s) desvinculado(s).`,
         ),
       ],
@@ -31,7 +31,7 @@ export const deleteGuildButton = {
   },
 };
 
-/** Confirmacao de saida da guilda (customId: guild:leave-confirm:<guildId>). */
+/** Confirmacao de saida do clã (customId: guild:leave-confirm:<guildId>). */
 export const leaveGuildButton = {
   customId: CustomId.LEAVE_CONFIRM,
   async execute(interaction, { args, services }) {
@@ -48,7 +48,7 @@ export const leaveGuildButton = {
       embeds: [
         successEmbed(
           `Você saiu de ${guildRecord.name}`,
-          'O cargo foi removido e você perdeu o acesso aos canais da guilda.',
+          'O cargo foi removido e você perdeu o acesso aos canais do clã.',
         ),
       ],
       components: [],

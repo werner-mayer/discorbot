@@ -1,7 +1,7 @@
 import { infoEmbed } from '../../utils/embeds.js';
 import { replyEphemeral } from '../../utils/interactionReply.js';
 
-/** /guild list — visao geral das guildas do servidor (administradores). */
+/** /cla list — visao geral dos clãs do servidor (administradores). */
 export default async function list(interaction, { services }) {
   services.permissionService.assertServerAdmin(interaction.member);
 
@@ -14,8 +14,8 @@ export default async function list(interaction, { services }) {
   return replyEphemeral(interaction, {
     embeds: [
       infoEmbed(
-        `Guildas do servidor (${guilds.length})`,
-        lines.join('\n') || 'Nenhuma guilda criada ainda.',
+        `Clãs do servidor (${guilds.length})`,
+        lines.join('\n') || 'Nenhum clã criado ainda.',
       ),
     ],
   });

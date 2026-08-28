@@ -14,7 +14,7 @@ import { createLogger } from '../utils/logger.js';
 const logger = createLogger('GuildService');
 
 /**
- * Regras de negocio da guilda em si. Orquestra Discord + banco.
+ * Regras de negocio do clã em si. Orquestra Discord + banco.
  * Handlers de comando/interacao nunca falam com repositorios diretamente.
  */
 export class GuildService {
@@ -56,21 +56,21 @@ export class GuildService {
 
   async assertAvailable(discordGuildId, { nameNormalized, tagNormalized, name, tag }) {
     const byName = await this.guilds.findByNormalizedName(discordGuildId, nameNormalized);
-    if (byName) throw new ConflictError(`Já existe uma guilda chamada **${name}** neste servidor.`);
+    if (byName) throw new ConflictError(`Já existe um clã chamado **${name}** neste servidor.`);
 
     const byTag = await this.guilds.findByNormalizedTag(discordGuildId, tagNormalized);
-    if (byTag) throw new ConflictError(`A TAG **[${tag}]** já está em uso pela guilda **${byTag.name}**.`);
+    if (byTag) throw new ConflictError(`A TAG **[${tag}]** já está em uso pelo clã **${byTag.name}**.`);
   }
 
   // --------------------------------------------------------------- leitura
 
   async getById(id) {
     const guild = await this.guilds.findById(id);
-    if (!guild) throw new NotFoundError('Guilda não encontrada.');
+    if (!guild) throw new NotFoundError('Clã não encontrada.');
     return guild;
   }
 
-  /** Guilda do usuario no servidor, ou null. */
+  /** Clã do usuario no servidor, ou null. */
   async getUserGuild(discordGuildId, userId) {
     const membership = await this.members.findByUser(discordGuildId, userId);
     return membership ? { guild: membership.guild, membership } : null;
@@ -78,7 +78,7 @@ export class GuildService {
 
   async requireUserGuild(discordGuildId, userId) {
     const result = await this.getUserGuild(discordGuildId, userId);
-    if (!result) throw new NotFoundError('Você não faz parte de nenhuma guilda.');
+    if (!result) throw new NotFoundError('Você não faz parte de nenhum clã.');
     return result;
   }
 
@@ -99,7 +99,7 @@ export class GuildService {
   /**
    * Fluxo completo de criacao (passos 1 a 12 do processo):
    * valida unicidade -> cria cargo/categoria/canais/permissoes ->
-   * persiste guilda + lider -> aplica o cargo ao criador.
+   * persiste clã + lider -> aplica o cargo ao criador.
    */
   async createGuild(discordGuild, ownerId, rawDraft) {
     const draft = this.validateDraft(rawDraft);
@@ -108,11 +108,11 @@ export class GuildService {
     // 1 e 2 — nome e TAG unicos no servidor.
     await this.assertAvailable(discordGuildId, draft);
 
-    // Regra: um usuario so pode participar de uma guilda por vez.
+    // Regra: um usuario so pode participar de um clã por vez.
     const existingMembership = await this.members.findByUser(discordGuildId, ownerId);
     if (existingMembership) {
       throw new ConflictError(
-        `Você já faz parte da guilda **${existingMembership.guild.name}**. Saia dela antes de criar outra (\`/guild leave\`).`,
+        `Você já faz parte do clã **${existingMembership.guild.name}**. Saia dela antes de criar outra (\`/cla leave\`).`,
       );
     }
 
@@ -124,7 +124,7 @@ export class GuildService {
 
     let guildRecord;
     try {
-      // 10 e 11 — persistencia da guilda + registro do lider, em uma escrita atomica.
+      // 10 e 11 — persistencia do clã + registro do lider, em uma escrita atomica.
       guildRecord = await this.guilds.create({
         discordGuildId,
         name: draft.name,
@@ -143,13 +143,13 @@ export class GuildService {
         },
       });
     } catch (error) {
-      logger.error('Falha ao persistir a guilda, revertendo estrutura do Discord.', error?.message);
+      logger.error('Falha ao persistir o clã, revertendo estrutura do Discord.', error?.message);
       await this.discord.destroyStructure(discordGuild, structure, 'Rollback: falha ao salvar no banco');
-      throw new ConflictError('Não consegui salvar a guilda no banco de dados. Nada foi criado.');
+      throw new ConflictError('Não consegui salvar o clã no banco de dados. Nada foi criado.');
     }
 
-    // 9 — o criador recebe o cargo da guilda.
-    await this.discord.assignRole(discordGuild, ownerId, structure.roleId, 'Criador da guilda');
+    // 9 — o criador recebe o cargo do clã.
+    await this.discord.assignRole(discordGuild, ownerId, structure.roleId, 'Criador do clã');
     await this.discord.applyTagToNickname(discordGuild, ownerId, draft.tag);
 
     await this.audit.record({
@@ -160,7 +160,7 @@ export class GuildService {
       metadata: { name: draft.name, tag: draft.tag, color: draft.color },
     });
 
-    logger.info(`Guilda criada: ${draft.name} [${draft.tag}] por ${ownerId}`);
+    logger.info(`Clã criado: ${draft.name} [${draft.tag}] por ${ownerId}`);
     return guildRecord;
   }
 
@@ -191,7 +191,7 @@ export class GuildService {
     if (reassignRoles) {
       for (const member of members) {
         await this.discord
-          .assignRole(discordGuild, member.discordUserId, record.roleId, 'Reparo da guilda')
+          .assignRole(discordGuild, member.discordUserId, record.roleId, 'Reparo do clã')
           .catch(() => null);
       }
     }
@@ -204,7 +204,7 @@ export class GuildService {
         actorId: actorId ?? discordGuild.client.user.id,
         metadata: { repaired },
       });
-      logger.warn(`Guilda ${record.name}: recriado -> ${repaired.join(', ')}`);
+      logger.warn(`Clã ${record.name}: recriado -> ${repaired.join(', ')}`);
     }
 
     return { guild: record, repaired };
@@ -230,7 +230,7 @@ export class GuildService {
       metadata: { name: guildRecord.name, tag: guildRecord.tag, members: members.length },
     });
 
-    logger.info(`Guilda excluída: ${guildRecord.name} por ${actorId}`);
+    logger.info(`Clã excluído: ${guildRecord.name} por ${actorId}`);
     return { removedMembers: members.length };
   }
 }

@@ -30,7 +30,7 @@ export class DiscordGuildService {
     const missing = REQUIRED_BOT_PERMISSIONS.filter((flag) => !me.permissions.has(flag));
     if (missing.length) {
       throw new AppError(
-        'O bot precisa das permissões **Gerenciar Cargos** e **Gerenciar Canais** para administrar guildas.',
+        'O bot precisa das permissões **Gerenciar Cargos** e **Gerenciar Canais** para administrar clãs.',
       );
     }
   }
@@ -133,7 +133,7 @@ export class DiscordGuildService {
 
     await category.permissionOverwrites.set(
       this.buildCategoryOverwrites({ discordGuild, roleId, ownerId, officerIds }),
-      'Sincronização de permissões da guilda',
+      'Sincronização de permissões do clã',
     );
 
     // Garante que os canais filhos voltem a herdar da categoria.
@@ -153,7 +153,7 @@ export class DiscordGuildService {
       color,
       hoist: this.config.guild.roleHoist,
       mentionable: this.config.guild.roleMentionable,
-      reason: `Cargo da guilda ${name}`,
+      reason: `Cargo do clã ${name}`,
     });
   }
 
@@ -162,7 +162,7 @@ export class DiscordGuildService {
       name: this.categoryName(name),
       type: ChannelType.GuildCategory,
       permissionOverwrites: this.buildCategoryOverwrites({ discordGuild, roleId, ownerId }),
-      reason: `Categoria da guilda ${name}`,
+      reason: `Categoria do clã ${name}`,
     });
   }
 
@@ -171,7 +171,7 @@ export class DiscordGuildService {
       name: slugifyChannelName(name || this.config.guild.defaultTextChannelName, 'chat'),
       type: ChannelType.GuildText,
       parent: categoryId,
-      reason: 'Canal de texto da guilda',
+      reason: 'Canal de texto do clã',
     });
   }
 
@@ -180,12 +180,12 @@ export class DiscordGuildService {
       name: (name || this.config.guild.defaultVoiceChannelName).slice(0, 100),
       type: ChannelType.GuildVoice,
       parent: categoryId,
-      reason: 'Canal de voz da guilda',
+      reason: 'Canal de voz do clã',
     });
   }
 
   /**
-   * Cria toda a estrutura de uma guilda. Em caso de falha no meio do caminho,
+   * Cria toda a estrutura de um clã. Em caso de falha no meio do caminho,
    * desfaz o que ja tinha sido criado (rollback) para nao deixar lixo.
    */
   async createStructure(discordGuild, { name, tag, color, textChannelName, voiceChannelName, ownerId }) {
@@ -218,17 +218,17 @@ export class DiscordGuildService {
         voiceChannelId: voiceChannel.id,
       };
     } catch (error) {
-      logger.error('Falha ao criar estrutura da guilda, revertendo.', error?.message);
+      logger.error('Falha ao criar estrutura do clã, revertendo.', error?.message);
       await this.rollback(created);
       throw new AppError(
-        'Não consegui criar a estrutura da guilda no Discord. Verifique as permissões do bot e tente novamente.',
+        'Não consegui criar a estrutura do clã no Discord. Verifique as permissões do bot e tente novamente.',
       );
     }
   }
 
   async rollback(createdObjects) {
     for (const object of [...createdObjects].reverse()) {
-      await object.delete('Rollback da criação da guilda').catch(() => null);
+      await object.delete('Rollback da criação do clã').catch(() => null);
     }
   }
 
@@ -298,7 +298,7 @@ export class DiscordGuildService {
 
   // -------------------------------------------------------------- membros
 
-  async assignRole(discordGuild, userId, roleId, reason = 'Entrada na guilda') {
+  async assignRole(discordGuild, userId, roleId, reason = 'Entrada no clã') {
     const member = await this.fetchMember(discordGuild, userId);
     const role = await this.fetchRole(discordGuild, roleId);
     if (!member || !role) return false;
@@ -307,7 +307,7 @@ export class DiscordGuildService {
     return true;
   }
 
-  async removeRole(discordGuild, userId, roleId, reason = 'Saída da guilda') {
+  async removeRole(discordGuild, userId, roleId, reason = 'Saída do clã') {
     const member = await this.fetchMember(discordGuild, userId);
     const role = await this.fetchRole(discordGuild, roleId);
     if (!member || !role) return false;
@@ -338,7 +338,7 @@ export class DiscordGuildService {
   // -------------------------------------------------------------- remocao
 
   /** Apaga cargo, canais e categoria. Objetos ja inexistentes sao ignorados. */
-  async destroyStructure(discordGuild, guildRecord, reason = 'Guilda excluída') {
+  async destroyStructure(discordGuild, guildRecord, reason = 'Clã excluído') {
     const results = { role: false, category: false, textChannel: false, voiceChannel: false };
 
     const textChannel = await this.fetchChannel(discordGuild, guildRecord.textChannelId);
@@ -365,7 +365,7 @@ export class DiscordGuildService {
   async renameStructure(discordGuild, guildRecord, { name, tag, color }) {
     const role = await this.fetchRole(discordGuild, guildRecord.roleId);
     if (role) {
-      await role.edit({ name: `[${tag}] ${name}`, color, reason: 'Atualização da guilda' }).catch(() => null);
+      await role.edit({ name: `[${tag}] ${name}`, color, reason: 'Atualização do clã' }).catch(() => null);
     }
     const category = await this.fetchChannel(discordGuild, guildRecord.categoryId, ChannelType.GuildCategory);
     if (category) {

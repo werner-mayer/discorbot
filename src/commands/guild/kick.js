@@ -3,7 +3,7 @@ import { successEmbed } from '../../utils/embeds.js';
 import { ValidationError } from '../../utils/errors.js';
 import { deferEphemeral, replyEphemeral } from '../../utils/interactionReply.js';
 
-/** /guild kick @usuario */
+/** /cla kick @usuario */
 export default async function kick(interaction, { services }) {
   const target = interaction.options.getUser('usuario', true);
   await deferEphemeral(interaction);
@@ -15,7 +15,7 @@ export default async function kick(interaction, { services }) {
   services.permissionService.assertCanManageMembers(guild, membership, interaction.member);
 
   if (target.id === interaction.user.id) {
-    throw new ValidationError('Para sair da guilda use `/guild leave`.');
+    throw new ValidationError('Para sair do clã use `/cla leave`.');
   }
 
   await services.memberService.removeMember(interaction.guild, guild, target.id, {
