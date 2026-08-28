@@ -61,14 +61,15 @@ O modal pede só o essencial. Os nomes dos canais **não são digitados**: nasce
 emoji escolhido no menu, e a prévia mostra exatamente o que vai ser criado:
 
 ```
-🐉 CLÃ - DRAGONS
+🐉 DRAGONS
 ├── #🐉・chat
 └── 🐉・voz
 ```
 
 O emoji também entra no nome do cargo (`🐉 [DRG] Dragons`), então aparece na lista de
 membros. Trocar depois em `/cla settings` renomeia cargo, categoria e canais de uma vez.
-As palavras `CLÃ`, `chat` e `voz` são configuráveis no `.env`.
+As palavras `chat` e `voz` são configuráveis no `.env`, e `GUILD_CATEGORY_LABEL` permite
+voltar a um prefixo do tipo `🐉 CLÃ - DRAGONS` se você quiser.
 
 Ao confirmar, o `GuildService` executa, nesta ordem:
 
@@ -77,7 +78,7 @@ Ao confirmar, o `GuildService` executa, nesta ordem:
 3. checa TAG única no servidor;
 4. checa que o usuário não está em outro clã;
 5. cria o cargo com a cor e o emoji escolhidos (`<emoji> [TAG] Nome`, destacado na lista de membros);
-6. cria a categoria `<emoji> CLÃ - NOME` com os overwrites de permissão;
+6. cria a categoria `<emoji> NOME` com os overwrites de permissão;
 7. cria o canal de texto e o canal de voz (herdam as permissões da categoria);
 8. persiste o clã e registra o criador como `OWNER` — em **uma escrita atômica**;
 9. aplica o cargo ao criador;

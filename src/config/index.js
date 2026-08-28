@@ -56,8 +56,9 @@ export const config = {
     nameMaxLength: number('GUILD_NAME_MAX_LENGTH', 32),
     tagMinLength: number('GUILD_TAG_MIN_LENGTH', 2),
     tagMaxLength: number('GUILD_TAG_MAX_LENGTH', 5),
-    // Nomes derivam do emoji escolhido: "🐉 CLÃ - DRAGONS", "🐉・chat", "🐉・voz"
-    categoryLabel: optional('GUILD_CATEGORY_LABEL', 'CLÃ'),
+    // Nomes derivam do emoji escolhido: "🐉 DRAGONS", "🐉・chat", "🐉・voz".
+    // categoryLabel vazio = so emoji + nome; preenchido = "🐉 CLÃ - DRAGONS".
+    categoryLabel: optional('GUILD_CATEGORY_LABEL', ''),
     textChannelLabel: optional('GUILD_TEXT_CHANNEL_LABEL', 'chat'),
     voiceChannelLabel: optional('GUILD_VOICE_CHANNEL_LABEL', 'voz'),
     defaultEmoji: optional('GUILD_DEFAULT_EMOJI', '⚔️'),

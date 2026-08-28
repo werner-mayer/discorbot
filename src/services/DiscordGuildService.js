@@ -85,7 +85,10 @@ export class DiscordGuildService {
 
   categoryName(guildName, emoji) {
     const icone = emoji || this.config.guild.defaultEmoji;
-    return truncate(`${icone} ${this.config.guild.categoryLabel} - ${guildName.toUpperCase()}`, 100);
+    const rotulo = this.config.guild.categoryLabel?.trim();
+    const nome = guildName.toUpperCase();
+    // Sem rotulo configurado a categoria fica so "🐉 DRAGONS".
+    return truncate(rotulo ? `${icone} ${rotulo} - ${nome}` : `${icone} ${nome}`, 100);
   }
 
   /** Canais nascem com nome automatico a partir do emoji do cla. */

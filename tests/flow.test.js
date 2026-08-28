@@ -52,7 +52,7 @@ await test('cria clã com cargo, categoria e canais', async () => {
   assert.equal(role.color, '#FF0000');
   assert.equal(role.hoist, true);
   const cat = await discordGuild.channels.fetch(guild.categoryId);
-  assert.equal(cat.name, '🐉 CLÃ - DRAGONS');
+  assert.equal(cat.name, '🐉 DRAGONS');
   const text = await discordGuild.channels.fetch(guild.textChannelId);
   assert.equal(text.name, '🐉・chat', 'nome default derivado do emoji');
   assert.equal(text.parentId, cat.id);
@@ -171,7 +171,7 @@ await test('trocar o emoji renomeia cargo, categoria e canais', async () => {
   cla = await services.settingsService.setEmoji(g, cla, '🔥', { actorId: 'dono-t' });
   assert.equal(cla.emoji, '🔥');
   assert.equal((await g.roles.fetch(cla.roleId)).name, '🔥 [TRC] Trocas');
-  assert.equal((await g.channels.fetch(cla.categoryId)).name, '🔥 CLÃ - TROCAS');
+  assert.equal((await g.channels.fetch(cla.categoryId)).name, '🔥 TROCAS');
   assert.equal((await g.channels.fetch(cla.textChannelId)).name, '🔥・chat');
   assert.equal((await g.channels.fetch(cla.voiceChannelId)).name, '🔥・voz');
 
