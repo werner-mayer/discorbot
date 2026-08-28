@@ -3,8 +3,20 @@ let seq = 1000;
 const nextId = () => String(++seq);
 
 class MockRole {
-  constructor(guild, data) { Object.assign(this, data); this.id = nextId(); this.guild = guild; this.deleted = false; }
-  async edit(data) { Object.assign(this, data); return this; }
+  constructor(guild, data) {
+    Object.assign(this, data);
+    // discord.js 14.27 recebe colors:{primaryColor} e expoe .color/.hexColor
+    if (data.colors?.primaryColor) this.color = data.colors.primaryColor;
+    this.hexColor = this.color;
+    this.id = nextId();
+    this.guild = guild;
+    this.deleted = false;
+  }
+  async edit(data) {
+    Object.assign(this, data);
+    if (data.colors?.primaryColor) this.color = this.hexColor = data.colors.primaryColor;
+    return this;
+  }
   async delete() { this.deleted = true; this.guild.roles.store.delete(this.id); return this; }
 }
 class MockChannel {
@@ -65,7 +77,13 @@ export function createMockGuild(id = '9999') {
     me: new MockMember(guild, 'bot-1', { admin: true }),
     fetch: async (uid) => guild.members.store.get(uid) ?? Promise.reject(new Error('unknown member')),
   };
+  // Por padrao o bot do mock pode tudo. setBotPermissions() restringe o conjunto
+  // para reproduzir o servidor real, onde o Discord recusa (50013) qualquer
+  // overwrite que conceda permissao que o proprio bot nao possui.
   guild.members.me.permissions = { has: () => true };
+  guild.setBotPermissions = (allowed) => {
+    guild.members.me.permissions = { has: (flag) => allowed.includes(flag) };
+  };
   guild.addUser = (uid, opts) => { const m = new MockMember(guild, uid, opts); guild.members.store.set(uid, m); return m; };
   return guild;
 }

@@ -76,6 +76,36 @@ await test('permissoes: everyone negado, cargo da clã liberado', async () => {
   assert.ok(ownerOw, 'lider deve ter overwrite de moderacao');
 });
 
+await test('nao concede permissao que o proprio bot nao tem (evita 50013)', async () => {
+  const { PermissionFlagsBits } = await import('discord.js');
+  const limitado = createMockGuild('8888');
+  limitado.addUser('dono-x');
+  // exatamente o que o convite padrao concede
+  limitado.setBotPermissions([
+    PermissionFlagsBits.ManageRoles,
+    PermissionFlagsBits.ManageChannels,
+    PermissionFlagsBits.ViewChannel,
+    PermissionFlagsBits.SendMessages,
+  ]);
+
+  const g = await guildService.createGuild(limitado, 'dono-x', {
+    name: 'Limitados', tag: 'LIM', color: '#123456',
+  });
+  const cat = await limitado.channels.fetch(g.categoryId);
+  const todas = cat.overwrites.flatMap((o) => [...(o.allow ?? []), ...(o.deny ?? [])]);
+
+  assert.ok(!todas.includes(PermissionFlagsBits.ManageMessages), 'nao deve conceder ManageMessages');
+  assert.ok(!todas.includes(PermissionFlagsBits.Connect), 'nao deve conceder Connect');
+  assert.ok(
+    cat.overwrites.find((o) => o.id === g.roleId).allow.includes(PermissionFlagsBits.ViewChannel),
+    'o que o bot tem continua sendo concedido',
+  );
+  assert.equal(new Set(cat.overwrites.map((o) => o.id)).size, cat.overwrites.length, 'sem ids repetidos');
+
+  const faltando = discordGuildService.missingGrantablePermissions(limitado);
+  assert.ok(faltando.includes('Gerenciar Mensagens') && faltando.includes('Conectar'), 'reporta o que falta');
+});
+
 await test('rejeita nome duplicado', async () => {
   await assert.rejects(
     () => guildService.createGuild(discordGuild, 'member-3', { name: 'dragons', tag: 'XPT', color: '#00FF00' }),

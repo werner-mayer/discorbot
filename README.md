@@ -34,8 +34,11 @@ npm run deploy:commands
 npm start
 ```
 
-Permissões do convite: **Gerenciar Cargos**, **Gerenciar Canais**, **Ver Canais**, **Enviar Mensagens**
-(e **Gerenciar Apelidos** se ligar `GUILD_APPLY_TAG_TO_NICKNAME`). No servidor, arraste o cargo do bot
+Permissões do convite: **Gerenciar Cargos**, **Gerenciar Canais**, **Ver Canais**, **Enviar Mensagens**,
+**Gerenciar Mensagens**, **Silenciar/Ensurdecer/Mover Membros** (e **Gerenciar Apelidos** se ligar
+`GUILD_APPLY_TAG_TO_NICKNAME`). O Discord recusa com `50013` qualquer overwrite que conceda uma permissão
+que o próprio bot não tenha; o bot filtra os bits que não pode conceder para nunca quebrar a criação, mas
+sem as quatro últimas o líder do clã não recebe moderação nos canais dele. No servidor, arraste o cargo do bot
 **acima** dos cargos que ele vai criar — o Discord não deixa um bot gerenciar cargos acima do próprio.
 
 ### Publicar o painel

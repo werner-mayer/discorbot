@@ -6,10 +6,22 @@ import { slugifyChannelName, truncate } from '../utils/text.js';
 
 const logger = createLogger('DiscordGuildService');
 
+// Sem estas duas o bot nao consegue criar nada.
 const REQUIRED_BOT_PERMISSIONS = [
   PermissionFlagsBits.ManageRoles,
   PermissionFlagsBits.ManageChannels,
 ];
+
+// Desejaveis: cada uma que faltar apenas reduz o que o bot consegue conceder
+// nos canais do cla, sem impedir a criacao.
+const DESIRED_PERMISSIONS = {
+  'Conectar': PermissionFlagsBits.Connect,
+  'Falar': PermissionFlagsBits.Speak,
+  'Gerenciar Mensagens': PermissionFlagsBits.ManageMessages,
+  'Silenciar Membros': PermissionFlagsBits.MuteMembers,
+  'Mover Membros': PermissionFlagsBits.MoveMembers,
+  'Ensurdecer Membros': PermissionFlagsBits.DeafenMembers,
+};
 
 /**
  * Camada que fala com a API do Discord: cargos, categorias, canais e overwrites.
@@ -63,6 +75,27 @@ export class DiscordGuildService {
    * Monta os overwrites da categoria. Os canais herdam da categoria
    * (sao criados sincronizados), entao ha apenas um lugar de verdade.
    */
+  /**
+   * O Discord recusa com 50013 qualquer overwrite que conceda uma permissao que
+   * o proprio bot nao possui. Filtramos os bits para o que ele pode conceder,
+   * assim a criacao nunca quebra por falta de uma permissao acessoria — as
+   * permissoes que faltarem sao reportadas por missingGrantablePermissions().
+   */
+  #grantable(discordGuild, flags) {
+    const me = discordGuild.members.me;
+    if (!me || me.permissions.has(PermissionFlagsBits.Administrator)) return flags;
+    return flags.filter((flag) => me.permissions.has(flag));
+  }
+
+  /** Permissoes desejadas que o bot ainda nao tem (para avisar o administrador). */
+  missingGrantablePermissions(discordGuild) {
+    const me = discordGuild.members.me;
+    if (!me || me.permissions.has(PermissionFlagsBits.Administrator)) return [];
+    return Object.entries(DESIRED_PERMISSIONS)
+      .filter(([, flag]) => !me.permissions.has(flag))
+      .map(([name]) => name);
+  }
+
   buildCategoryOverwrites({ discordGuild, roleId, ownerId, officerIds = [] }) {
     const botId = discordGuild.client.user.id;
 
@@ -124,7 +157,21 @@ export class DiscordGuildService {
       overwrites.push({ id: userId, allow: moderatorAllow });
     }
 
-    return overwrites;
+    // Funde entradas repetidas (o mesmo id pode aparecer como bot e como dono)
+    // e remove os bits que o bot nao tem poder para conceder.
+    const merged = new Map();
+    for (const overwrite of overwrites) {
+      const current = merged.get(overwrite.id) ?? { id: overwrite.id, allow: [], deny: [] };
+      current.allow.push(...(overwrite.allow ?? []));
+      current.deny.push(...(overwrite.deny ?? []));
+      merged.set(overwrite.id, current);
+    }
+
+    return [...merged.values()].map(({ id, allow, deny }) => ({
+      id,
+      allow: this.#grantable(discordGuild, [...new Set(allow)]),
+      deny: this.#grantable(discordGuild, [...new Set(deny)]),
+    }));
   }
 
   async syncPermissions(discordGuild, { categoryId, roleId, ownerId, officerIds = [] }) {
@@ -150,7 +197,7 @@ export class DiscordGuildService {
   createRole(discordGuild, { name, tag, color }) {
     return discordGuild.roles.create({
       name: `[${tag}] ${name}`,
-      color,
+      colors: { primaryColor: color },
       hoist: this.config.guild.roleHoist,
       mentionable: this.config.guild.roleMentionable,
       reason: `Cargo do clã ${name}`,
@@ -365,7 +412,9 @@ export class DiscordGuildService {
   async renameStructure(discordGuild, guildRecord, { name, tag, color }) {
     const role = await this.fetchRole(discordGuild, guildRecord.roleId);
     if (role) {
-      await role.edit({ name: `[${tag}] ${name}`, color, reason: 'Atualização do clã' }).catch(() => null);
+      await role
+        .edit({ name: `[${tag}] ${name}`, colors: { primaryColor: color }, reason: 'Atualização do clã' })
+        .catch(() => null);
     }
     const category = await this.fetchChannel(discordGuild, guildRecord.categoryId, ChannelType.GuildCategory);
     if (category) {

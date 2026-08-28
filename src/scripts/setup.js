@@ -19,7 +19,9 @@ const ENV_PATH = new URL('../../.env', import.meta.url).pathname;
 const ENV_EXAMPLE_PATH = new URL('../../.env.example', import.meta.url).pathname;
 
 // Manage Roles + Manage Channels + View Channels + Send Messages
-const REQUIRED_PERMISSIONS = 268438544n;
+// + Manage Messages + Mute/Deafen/Move Members: sem estas ultimas o bot nao
+// consegue conceder moderacao ao lider do cla nos canais que ele cria.
+const REQUIRED_PERMISSIONS = 297806864n;
 const MANAGE_NICKNAMES = 134217728n;
 
 // Flags de intent privilegiada na aplicacao (GET /applications/@me).
@@ -203,6 +205,28 @@ async function main() {
     );
   } else {
     ok('O cargo do bot está no topo da hierarquia.');
+  }
+
+  const permissoesBot = botMember.roles.reduce(
+    (acc, id) => acc | BigInt(roleById.get(id)?.permissions ?? 0),
+    0n,
+  );
+  const DESEJADAS = {
+    'Gerenciar Mensagens': 8192n, 'Silenciar Membros': 4194304n,
+    'Ensurdecer Membros': 8388608n, 'Mover Membros': 16777216n,
+  };
+  const faltando = Object.entries(DESEJADAS)
+    .filter(([, bit]) => (permissoesBot & bit) === 0n && (permissoesBot & 8n) === 0n)
+    .map(([nome]) => nome);
+  if (faltando.length) {
+    warn(
+      `O bot não tem: ${faltando.join(', ')}.\n` +
+        '  Os clãs funcionam, mas o líder não recebe moderação nos canais do próprio clã.\n' +
+        `  Para liberar, reabra o convite: https://discord.com/oauth2/authorize?client_id=${application.id}` +
+        `&permissions=${REQUIRED_PERMISSIONS}&scope=bot%20applications.commands`,
+    );
+  } else {
+    ok('O bot tem todas as permissões necessárias.');
   }
 
   // ----------------------------------------------------------------- canal
