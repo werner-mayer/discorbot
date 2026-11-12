@@ -6,10 +6,11 @@ import { deferEphemeral, replyEphemeral } from '../../utils/interactionReply.js'
 export default {
   customId: CustomId.CONFIRM_CREATE,
   async execute(interaction, { services }) {
-    const draft = services.guildDraftStore.get(interaction.guild.id, interaction.user.id);
+    // take(): o segundo clique (duplo clique) encontra null e nao cria nada.
+    const draft = services.guildDraftStore.take(interaction.guild.id, interaction.user.id);
     if (!draft) {
       return replyEphemeral(interaction, {
-        embeds: [errorEmbed('Seu rascunho expirou. Clique em **Criar Clã** novamente.')],
+        embeds: [errorEmbed('Seu rascunho expirou ou a criação já está em andamento. Se o clã não aparecer, clique em **Criar Clã** novamente.')],
         components: [],
       });
     }
@@ -17,8 +18,14 @@ export default {
     // A criacao envolve varias chamadas a API do Discord: defer evita timeout.
     await deferEphemeral(interaction);
 
-    const guild = await services.guildService.createGuild(interaction.guild, interaction.user.id, draft);
-    services.guildDraftStore.clear(interaction.guild.id, interaction.user.id);
+    let guild;
+    try {
+      guild = await services.guildService.createGuild(interaction.guild, interaction.user.id, draft);
+    } catch (error) {
+      // Nada foi criado: devolve o rascunho para o usuario poder tentar de novo.
+      services.guildDraftStore.save(interaction.guild.id, interaction.user.id, draft);
+      throw error;
+    }
 
     return replyEphemeral(interaction, {
       embeds: [
@@ -30,6 +37,7 @@ export default {
             `Texto: <#${guild.textChannelId}>`,
             `Voz: <#${guild.voiceChannelId}>`,
             '',
+            ...(guild.warnings ?? []).map((aviso) => `⚠️ ${aviso}`),
             'Convide membros com `/cla invite @usuario`.',
           ].join('\n'),
         ),

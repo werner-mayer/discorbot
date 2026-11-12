@@ -31,6 +31,16 @@ export class GuildDraftStore {
     return this.drafts.get(this.#key(discordGuildId, userId))?.draft ?? null;
   }
 
+  /**
+   * Retira o rascunho de forma atomica (get + clear no mesmo passo sincrono).
+   * Quem chama primeiro leva o rascunho; um segundo clique encontra null.
+   */
+  take(discordGuildId, userId) {
+    const draft = this.get(discordGuildId, userId);
+    if (draft) this.clear(discordGuildId, userId);
+    return draft;
+  }
+
   clear(discordGuildId, userId) {
     const key = this.#key(discordGuildId, userId);
     const existing = this.drafts.get(key);

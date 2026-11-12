@@ -154,12 +154,34 @@ export class GuildService {
     } catch (error) {
       logger.error('Falha ao persistir o clã, revertendo estrutura do Discord.', error?.message);
       await this.discord.destroyStructure(discordGuild, structure, 'Rollback: falha ao salvar no banco');
+
+      // P2002 = violacao de unique: outra criacao venceu a corrida.
+      if (error?.code === 'P2002') {
+        const alvo = String(error.meta?.target ?? '');
+        if (alvo.includes('discordUserId')) {
+          throw new ConflictError('Você já faz parte de um clã. Nada foi criado.');
+        }
+        if (alvo.includes('tagNormalized')) {
+          throw new ConflictError(`A TAG **[${draft.tag}]** acabou de ser usada por outro clã. Escolha outra.`);
+        }
+        throw new ConflictError(`O nome **${draft.name}** acabou de ser usado por outro clã. Escolha outro.`);
+      }
       throw new ConflictError('Não consegui salvar o clã no banco de dados. Nada foi criado.');
     }
 
     // 9 — o criador recebe o cargo do clã.
-    await this.discord.assignRole(discordGuild, ownerId, structure.roleId, 'Criador do clã');
-    await this.discord.applyTagToNickname(discordGuild, ownerId, draft.tag);
+    // O clã ja esta salvo: falha aqui nao pode derrubar a resposta ao usuario.
+    const warnings = [];
+    const roleAssigned = await this.discord
+      .assignRole(discordGuild, ownerId, structure.roleId, 'Criador do clã')
+      .catch((error) => {
+        logger.warn(`Falha ao aplicar o cargo ao criador ${ownerId}`, error?.message);
+        return false;
+      });
+    if (!roleAssigned) {
+      warnings.push('Não consegui aplicar o cargo do clã em você. Use `/cla repair` para corrigir.');
+    }
+    await this.discord.applyTagToNickname(discordGuild, ownerId, draft.tag).catch(() => null);
 
     await this.audit.record({
       discordGuildId,
@@ -170,7 +192,7 @@ export class GuildService {
     });
 
     logger.info(`Clã criado: ${draft.name} [${draft.tag}] por ${ownerId}`);
-    return guildRecord;
+    return { ...guildRecord, warnings };
   }
 
   // -------------------------------------------------------------- manutencao
