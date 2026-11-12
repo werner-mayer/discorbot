@@ -17,6 +17,9 @@ export default {
         ],
       });
     }
+    await services.guildService.assertCanCreate(interaction.guild, interaction.user.id, {
+      isAdmin: services.permissionService.isServerAdmin(interaction.member),
+    });
     return interaction.showModal(createGuildModal());
   },
 };

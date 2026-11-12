@@ -5,7 +5,7 @@ import DiscordGuildService from './DiscordGuildService.js';
 import AuditLogService from './AuditLogService.js';
 import { AuditAction } from '../models/AuditAction.js';
 import { GuildMemberRole } from '../models/GuildMemberRole.js';
-import { ConflictError, NotFoundError } from '../utils/errors.js';
+import { ConflictError, NotFoundError, PermissionError } from '../utils/errors.js';
 import { normalize } from '../utils/text.js';
 import { parseColor } from '../utils/color.js';
 import { validateGuildName, validateGuildTag } from '../utils/validators.js';
@@ -55,6 +55,42 @@ export class GuildService {
       nameNormalized: normalize(name),
       tagNormalized: normalize(tag),
     };
+  }
+
+  /**
+   * Regras anti-spam de criacao: cargo exigido, tempo no servidor e cooldown
+   * desde o ultimo clã criado (conta mesmo se o clã foi apagado depois).
+   * `isAdmin` isenta tudo.
+   */
+  async assertCanCreate(discordGuild, userId, { isAdmin = false } = {}) {
+    if (isAdmin) return;
+    const { createCooldownHours, minMemberDays, createRequiredRoleId } = this.config.guild;
+
+    if (createRequiredRoleId || minMemberDays > 0) {
+      const member = await this.discord.fetchMember(discordGuild, userId);
+      if (createRequiredRoleId && !member?.roles.cache.has(createRequiredRoleId)) {
+        throw new PermissionError(`Para criar um clã você precisa do cargo <@&${createRequiredRoleId}>.`);
+      }
+      if (minMemberDays > 0 && member?.joinedTimestamp) {
+        const days = (Date.now() - member.joinedTimestamp) / 86_400_000;
+        if (days < minMemberDays) {
+          throw new PermissionError(
+            `Você precisa estar no servidor há ${minMemberDays} dia(s) para criar um clã. Faltam ${Math.ceil(minMemberDays - days)}.`,
+          );
+        }
+      }
+    }
+
+    if (createCooldownHours > 0) {
+      const last = await this.audit.findLastByActor(discordGuild.id, userId, AuditAction.GUILD_CREATED);
+      if (last) {
+        const waitMs = last.createdAt.getTime() + createCooldownHours * 3_600_000 - Date.now();
+        if (waitMs > 0) {
+          const unlock = Math.floor((Date.now() + waitMs) / 1000);
+          throw new PermissionError(`Você criou um clã recentemente. Poderá criar outro <t:${unlock}:R>.`);
+        }
+      }
+    }
   }
 
   async assertAvailable(discordGuildId, { nameNormalized, tagNormalized, name, tag }) {
@@ -109,9 +145,11 @@ export class GuildService {
    * valida unicidade -> cria cargo/categoria/canais/permissoes ->
    * persiste clã + lider -> aplica o cargo ao criador.
    */
-  async createGuild(discordGuild, ownerId, rawDraft) {
+  async createGuild(discordGuild, ownerId, rawDraft, { isAdmin = false } = {}) {
     const draft = this.validateDraft(rawDraft);
     const discordGuildId = discordGuild.id;
+
+    await this.assertCanCreate(discordGuild, ownerId, { isAdmin });
 
     // 1 e 2 — nome e TAG unicos no servidor.
     await this.assertAvailable(discordGuildId, draft);

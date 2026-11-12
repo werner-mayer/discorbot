@@ -27,6 +27,10 @@ export class AuditLogService {
     }
   }
 
+  findLastByActor(discordGuildId, actorId, action) {
+    return this.auditLogs.findLastByActor(discordGuildId, actorId, action);
+  }
+
   list(discordGuildId, take) {
     return this.auditLogs.listByServer(discordGuildId, take);
   }

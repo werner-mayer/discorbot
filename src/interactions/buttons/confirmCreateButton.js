@@ -20,7 +20,9 @@ export default {
 
     let guild;
     try {
-      guild = await services.guildService.createGuild(interaction.guild, interaction.user.id, draft);
+      guild = await services.guildService.createGuild(interaction.guild, interaction.user.id, draft, {
+        isAdmin: services.permissionService.isServerAdmin(interaction.member),
+      });
     } catch (error) {
       // Nada foi criado: devolve o rascunho para o usuario poder tentar de novo.
       services.guildDraftStore.save(interaction.guild.id, interaction.user.id, draft);

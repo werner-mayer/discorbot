@@ -24,6 +24,28 @@ const DESIRED_PERMISSIONS = {
   'Ensurdecer Membros': PermissionFlagsBits.DeafenMembers,
 };
 
+// Limites fixos do Discord por servidor. Um clã consome 1 cargo e 3 canais.
+const MAX_ROLES = 250;
+const MAX_CHANNELS = 500;
+const CHANNELS_PER_CLAN = 3;
+
+/** Traduz o codigo de erro da API do Discord para algo que o usuario entenda. */
+function explainDiscordError(error) {
+  switch (error?.code) {
+    case 30005:
+      return 'O servidor atingiu o limite de 250 cargos do Discord. Peça a um administrador para apagar cargos não usados.';
+    case 30013:
+      return 'O servidor atingiu o limite de 500 canais do Discord. Peça a um administrador para apagar canais não usados.';
+    case 30015:
+      return 'A categoria atingiu o limite de 50 canais do Discord.';
+    case 50013:
+    case 50001:
+      return 'O bot não tem permissão para criar isso. Verifique as permissões e a posição do cargo do bot.';
+    default:
+      return 'Não consegui criar a estrutura do clã no Discord. Verifique as permissões do bot e tente novamente.';
+  }
+}
+
 /**
  * Camada que fala com a API do Discord: cargos, categorias, canais e overwrites.
  * Nao conhece o banco de dados — recebe e devolve dados simples.
@@ -44,6 +66,20 @@ export class DiscordGuildService {
     if (missing.length) {
       throw new AppError(
         'O bot precisa das permissões **Gerenciar Cargos** e **Gerenciar Canais** para administrar clãs.',
+      );
+    }
+  }
+
+  /** Falha cedo, com mensagem clara, quando o servidor nao comporta mais um clã. */
+  assertCapacity(discordGuild) {
+    if (discordGuild.roles.cache.size + 1 > MAX_ROLES) {
+      throw new AppError(
+        `O servidor atingiu o limite de ${MAX_ROLES} cargos do Discord e não comporta um novo clã. Avise um administrador.`,
+      );
+    }
+    if (discordGuild.channels.cache.size + CHANNELS_PER_CLAN > MAX_CHANNELS) {
+      throw new AppError(
+        `O servidor está perto do limite de ${MAX_CHANNELS} canais do Discord e não comporta um novo clã. Avise um administrador.`,
       );
     }
   }
@@ -290,6 +326,7 @@ export class DiscordGuildService {
    */
   async createStructure(discordGuild, { name, tag, color, emoji, ownerId }) {
     this.assertBotCanManage(discordGuild);
+    this.assertCapacity(discordGuild);
 
     const created = [];
     try {
@@ -312,11 +349,9 @@ export class DiscordGuildService {
         voiceChannelId: voiceChannel.id,
       };
     } catch (error) {
-      logger.error('Falha ao criar estrutura do clã, revertendo.', error?.message);
+      logger.error('Falha ao criar estrutura do clã, revertendo.', error?.code, error?.message);
       await this.rollback(created);
-      throw new AppError(
-        'Não consegui criar a estrutura do clã no Discord. Verifique as permissões do bot e tente novamente.',
-      );
+      throw new AppError(explainDiscordError(error));
     }
   }
 

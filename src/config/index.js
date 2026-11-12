@@ -73,6 +73,11 @@ export const config = {
     pointsPerLevel: number('GUILD_POINTS_PER_LEVEL', 100),
     // Pontos que o vencedor de uma guerra leva por padrao
     warPrize: number('GUILD_WAR_PRIZE', 50),
+    // Anti-spam de criacao. 0 desliga. Administradores sao isentos.
+    createCooldownHours: number('GUILD_CREATE_COOLDOWN_HOURS', 24),
+    minMemberDays: number('GUILD_MIN_MEMBER_DAYS', 0),
+    // Cargo exigido para criar clã (vazio = qualquer membro).
+    createRequiredRoleId: optional('GUILD_CREATE_REQUIRED_ROLE_ID'),
     maxDescriptionLength: number('GUILD_MAX_DESCRIPTION_LENGTH', 300),
   },
 };

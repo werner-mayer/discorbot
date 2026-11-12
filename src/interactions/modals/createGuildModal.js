@@ -29,6 +29,9 @@ export function confirmationPayload(draft, services) {
 export default {
   customId: CustomId.CREATE_MODAL,
   async execute(interaction, { services }) {
+    await services.guildService.assertCanCreate(interaction.guild, interaction.user.id, {
+      isAdmin: services.permissionService.isServerAdmin(interaction.member),
+    });
     const draft = services.guildService.validateDraft({
       name: interaction.fields.getTextInputValue('name'),
       tag: interaction.fields.getTextInputValue('tag'),

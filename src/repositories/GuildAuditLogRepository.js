@@ -9,6 +9,13 @@ export class GuildAuditLogRepository {
     return this.db.guildAuditLog.create({ data });
   }
 
+  findLastByActor(discordGuildId, actorId, action) {
+    return this.db.guildAuditLog.findFirst({
+      where: { discordGuildId, actorId, action },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   listByServer(discordGuildId, take = 25) {
     return this.db.guildAuditLog.findMany({
       where: { discordGuildId },
